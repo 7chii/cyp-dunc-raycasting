@@ -1,0 +1,19 @@
+-> add if(nenhum inimigo): liberar porta
+-> add porta para subir de nivel
+-> add logica if(encostando em porta): mudar nivel
+-> add niveis
+
+-> add menu inicial
+-> add boss
+-> add mais itens
+-> add itens usaveis ok
+
+->em combate listar items equipados do inimigo
+->correr (andar mais rapido) ok
+
+->add miss attack
+->add carregamento entre comandos do jogador ok/2
+->escreva os comandos do jogador nas mensagens ok
+->add barra de scroll (com setinha)
+
+-> comando help

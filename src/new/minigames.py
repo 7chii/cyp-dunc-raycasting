@@ -14,11 +14,11 @@ def run_space_invaders_minigame(screen, terminal):
     hack_height = 8
     duration = 15
     player_pos = hack_width // 2
-    player_line_idx = hack_height - 1
+    player_line_idx = hack_height - 1  # linha final do jogador
 
     enemy_spawn_interval = 0.8
-    enemy_speed = 2.0
-    bullet_speed = 0.4
+    enemy_speed = 2.0  # linhas por segundo
+    bullet_speed = 4.0  # linhas por segundo
 
     enemies = []
     bullets = []
@@ -30,7 +30,6 @@ def run_space_invaders_minigame(screen, terminal):
     enemy_move_accumulator = 0
     mini_clock = pg.time.Clock()
     
-    # Controle de tiro
     space_pressed_last_frame = False
 
     running = True
@@ -42,7 +41,6 @@ def run_space_invaders_minigame(screen, terminal):
         if elapsed > duration:
             return True
 
-        # Eventos
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
@@ -50,62 +48,51 @@ def run_space_invaders_minigame(screen, terminal):
 
         # Movimento jogador
         pressed = pg.key.get_pressed()
-        if pressed[pg.K_LEFT] and player_pos > 0:
-            player_pos -= 0.5
-        if pressed[pg.K_RIGHT] and player_pos < hack_width - 1:
-            player_pos += 0.5
+        if pressed[pg.K_LEFT]:
+            player_pos = max(0, player_pos - dt * 10)
+        if pressed[pg.K_RIGHT]:
+            player_pos = min(hack_width - 1, player_pos + dt * 10)
 
-        # ATIRAR: apenas quando tecla é pressionada agora
+        # Atirar
         if pressed[pg.K_SPACE] and not space_pressed_last_frame:
-            bullets.append([player_pos, player_line_idx - 1])
+            bullets.append([player_pos, float(player_line_idx - 1)])
         space_pressed_last_frame = pressed[pg.K_SPACE]
 
-        # Spawn de inimigos
+        # Spawn inimigos
         if current_time - last_enemy_spawn > enemy_spawn_interval:
             max_enemies_per_wave = 6
-            possible_positions = list(range(0, hack_width, 3))
-            random.shuffle(possible_positions)
+            positions = list(range(0, hack_width, 3))
+            random.shuffle(positions)
             num_to_spawn = random.randint(1, max_enemies_per_wave)
-            spawn_positions = possible_positions[:num_to_spawn]
-            for x in spawn_positions:
-                enemies.append([x, 0])
+            for x in positions[:num_to_spawn]:
+                enemies.append([float(x), 0.0])
             last_enemy_spawn = current_time
 
         # Move inimigos
-        enemy_move_accumulator += dt
-        if enemy_move_accumulator >= 1 / enemy_speed:
-            for enemy in enemies:
-                enemy[1] += 1
-            enemy_move_accumulator = 0
+        for enemy in enemies:
+            enemy[1] += enemy_speed * dt
 
         # Atualiza balas
-        bullets = [[b[0], b[1]-bullet_speed] for b in bullets if b[1]-bullet_speed >= 0]
+        bullets = [[b[0], b[1] - bullet_speed * dt] for b in bullets if b[1] - bullet_speed * dt >= 0]
 
-        # Colisão bala x inimigo com explosão
+        # Colisão bala x inimigo
         enemies_to_remove = set()
         new_bullets = []
-
         for b in bullets:
             hit_any = False
             for idx, e in enumerate(enemies):
-                # colisão permissiva: +-1 coluna e +-1 linha
-                if abs(b[0] - e[0]) <= 1 and abs(b[1] - e[1]) <= 1:
+                if abs(b[0] - e[0]) < 1 and abs(b[1] - e[1]) < 1:
                     hit_any = True
-                    # marca inimigos na vizinhança 3x3 para remoção
-                    for j, other in enumerate(enemies):
-                        if abs(other[0] - e[0]) <= 1 and abs(other[1] - e[1]) <= 1:
-                            enemies_to_remove.add(j)
+                    enemies_to_remove.add(idx)
                     break
             if not hit_any:
                 new_bullets.append(b)
 
-        # Atualiza listas
         bullets = new_bullets
         enemies = [e for idx, e in enumerate(enemies) if idx not in enemies_to_remove]
 
-
-        # Verifica derrota: inimigo chegou à linha do jogador ou colidiu
-        player_hit = any(e[1] >= player_line_idx and e[0] == player_pos for e in enemies)
+        # Verifica derrota
+        player_hit = any(e[1] >= player_line_idx for e in enemies)
         if player_hit:
             return False
 
@@ -126,20 +113,24 @@ def run_space_invaders_minigame(screen, terminal):
 
         # Desenhar inimigos
         for ex, ey in enemies:
-            enemy_render = terminal.font.render('T', True, (0, 255, 0))
-            screen.blit(enemy_render, (20 + ex * cell_w, y_offset + int(ey) * cell_h))
+            ex_px = 20 + ex * cell_w
+            ey_px = y_offset + ey * cell_h
+            screen.blit(terminal.font.render('T', True, (0, 255, 0)), (ex_px, ey_px))
 
         # Desenhar balas
         for bx, by in bullets:
-            bullet_render = terminal.font.render('|', True, (0, 255, 0))
-            screen.blit(bullet_render, (20 + bx * cell_w, y_offset + int(by) * cell_h))
+            bx_px = 20 + bx * cell_w
+            by_px = y_offset + by * cell_h
+            screen.blit(terminal.font.render('|', True, (0, 255, 0)), (bx_px, by_px))
 
         # Desenhar jogador
-        player_render = terminal.font.render('@', True, (0, 255, 0))
-        player_rect = pg.Rect(20 + player_pos * cell_w, y_offset + player_line_idx * cell_h, cell_w, cell_h)
-        screen.blit(player_render, player_rect.topleft)
+        player_px = 20 + player_pos * cell_w
+        player_py = y_offset + player_line_idx * cell_h
+        screen.blit(terminal.font.render('@', True, (0, 255, 0)), (player_px, player_py))
 
         pg.display.flip()
+
+
 
 
 def run_hack_minigame(screen, terminal):
@@ -147,7 +138,7 @@ def run_hack_minigame(screen, terminal):
     hack_height = 8
     duration = 10
     player_pos = hack_width // 2
-    obstacle_interval = 0.1
+    obstacle_interval = 0.2
 
     lines = [[' ']*hack_width for _ in range(hack_height)]
     messages_backup = terminal.messages.copy()
@@ -156,7 +147,7 @@ def run_hack_minigame(screen, terminal):
     start_time = time.time()
     last_obstacle_time = 0
     mini_clock = pg.time.Clock()
-    path_width = 15
+    path_width = 8
     path_start_col = max(0, min(hack_width - path_width, player_pos - path_width // 2))
 
     running = True
@@ -186,8 +177,8 @@ def run_hack_minigame(screen, terminal):
             lines.pop(0)
             
             # Chance aleatória de diminuir o caminho
-            if path_width == 15 and random.random() < 0.2:  # 20% de chance de reduzir
-                path_width = 11
+            if path_width == 8 and random.random() < 0.2:  # 20% de chance de reduzir
+                path_width = 6
 
             new_line = ['#']*hack_width
             shift = random.choice([-2, -1, 0, 1, 2])

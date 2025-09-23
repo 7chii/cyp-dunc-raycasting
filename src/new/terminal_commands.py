@@ -5,7 +5,7 @@ import pygame as pg
 
 def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid):
     """
-    Lida com os comandos do terminal (apertar TAB) e retorna
+    lida com os comandos do terminal (apertar TAB ou combate) e retorna
     os estados atualizados de black_screen e collided_enemy
     """
     def find_free_position_with_exit(grid_dict, player_pos):
@@ -18,11 +18,32 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 return nx + 0.5, ny + 0.5
         return px + 0.5, py + 0.5
 
+    def terminal_loading(terminal, screen, label="loading", steps=6, delay=100):
+        """
+        animacaozinha do terminal
+        """
+        terminal.messages.append(f"{label} [{'·' * steps}]")
+
+        for i in range(steps + 1):
+            filled = "=" * i
+            empty = " " * (steps - i)
+            bar = f"[{filled}{empty}]"
+            terminal.messages[-1] = f"{label} {bar}"
+
+            # limpa a tela antes de desenhar
+            screen.fill((0, 0, 0))  
+            terminal.draw(screen)
+
+            pg.display.flip()
+            pg.time.delay(delay)
+
+
     def terminal_command_callback(command):
         nonlocal black_screen
         nonlocal collided_enemy
         def enemy_turn():
             if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
+                terminal_loading(terminal, screen, label="loading action")
                 dano = collided_enemy.get_damage()
                 player.hp -= dano
                 terminal.messages.append(
@@ -35,9 +56,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     exit()
 
         if black_screen and collided_enemy:
-            # Comandos durante combate
+            # comandos durante combate
             if command["type"] == "attack":
                     if collided_enemy and command["target"] == collided_enemy.name:
+                        terminal_loading(terminal, screen, label="loading attack")
                         dano = player.get_damage(command["hand"])
                         collided_enemy.hp = max(1, collided_enemy.hp - dano)
                         terminal.messages.append(
@@ -50,6 +72,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         )
             if command["type"] == "hack":
                 if collided_enemy and collided_enemy.name == command["target"]:
+                    terminal_loading(terminal, screen, label="loading hack")
                     success = minigames.run_minigames(screen, terminal)
 
                     if success:
@@ -60,7 +83,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         collided_enemy.hp = 1
                     else:
                         player.hp -= 3
-                        terminal.messages.append(f"HACKING FAILED (-3 HP) Current HP:{player.hp}")
+                        terminal.messages.append(f"ERROR: HACKING FAILED (-3 HP) Current HP:{player.hp}")
                         if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
                             dano = collided_enemy.get_damage()
                             player.hp -= dano
@@ -190,7 +213,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     collided_enemy = None
                     terminal.text = ""
         else:
-            # Comandos gerais (fora de combate)
+            # comandos gerais (fora de combate)
             if command["type"] == "attack":
                         terminal.messages.append(
                             f"ERROR: You can only attack an enemy in combat (none)!"
@@ -217,10 +240,14 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append(f"No {item} nearby to pick up.")
             elif command["type"] == "inventory_list":
                 if player.inventory:
-                    items = ", ".join(player.inventory)
-                    terminal.messages.append(f"Inventory: {items}")
+                    terminal.messages.append("Inventory:")
+                    max_per_line = 5  # numero de itens por linha
+                    for i in range(0, len(player.inventory), max_per_line):
+                        line = ", ".join(player.inventory[i:i+max_per_line])
+                        terminal.messages.append("  " + line)
                 else:
                     terminal.messages.append("Inventory is empty.")
+
 
             elif command["type"] == "equipment_list":
                 right = player.right_hand if player.right_hand else "empty"

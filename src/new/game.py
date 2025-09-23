@@ -20,7 +20,7 @@ def main() -> None:
     dropped_items = []
 
     pg.init()
-    font = pg.font.SysFont(pg.font.get_default_font(), 24)
+    font = font = pg.font.SysFont("Courier New", 18)
     clock = pg.time.Clock()
     width, height = constants.SIZE
     terminal = game_objects.Terminal(font, width, height)

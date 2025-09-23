@@ -169,14 +169,16 @@ class Terminal:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_RETURN:
                     if self.text.strip():
+                        # Sempre salva o que o jogador digitou
+                        self.messages.append("> " + self.text.strip())
+
                         command = self.parse_command(self.text)
                         if command and command_callback:
                             command_callback(command)
                         elif error_callback:
                             error_callback(self.text.strip())
-                        else:
-                            self.messages.append(self.text)
                     self.text = ""
+
                 elif event.key == pg.K_BACKSPACE:
                     self.text = self.text[:-1]
                 elif event.unicode and event.key not in (pg.K_ESCAPE, pg.K_RETURN, pg.K_BACKSPACE):
@@ -247,14 +249,43 @@ class Terminal:
         margin_bottom = 10
         usable_height = self.height - margin_top - margin_bottom
         total_lines = usable_height // line_height
-        msgs_to_show = min(len(self.messages), total_lines - 1)
+
+        # Mostra apenas as últimas mensagens cabíveis
+        msgs_to_show = []
+        for msg in self.messages:
+            wrapped_lines = wrap_text(msg, self.font, self.width)
+            msgs_to_show.extend(wrapped_lines)
+        msgs_to_show = msgs_to_show[-total_lines+1:]
+
         y = margin_top
-        for msg in self.messages[-msgs_to_show:]:
+        for msg in msgs_to_show:
             rendered = self.font.render(msg, True, (0, 255, 0))
             screen.blit(rendered, (20, y))
             y += line_height
+
+        # Linha de edição
         edit_y = min(y, self.height - margin_bottom - line_height)
         edit_rendered = self.font.render(self.text, True, (0, 255, 0))
         screen.blit(edit_rendered, (20, edit_y))
         cursor = self.font.render("_", True, (0, 255, 0))
         screen.blit(cursor, (20 + self.font.size(self.text)[0], edit_y))
+        
+def wrap_text(text, font, max_width):
+        """
+        Divide `text` em várias linhas que caibam em `max_width` pixels.
+        Retorna uma lista de linhas.
+        """
+        words = text.split(" ")
+        lines = []
+        current_line = ""
+        for word in words:
+            test_line = current_line + (" " if current_line else "") + word
+            if font.size(test_line)[0] <= max_width - 40:
+                current_line = test_line
+            else:
+                if current_line:
+                    lines.append(current_line)
+                current_line = word
+        if current_line:
+            lines.append(current_line)
+        return lines

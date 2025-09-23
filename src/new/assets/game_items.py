@@ -21,7 +21,7 @@ item_companies_values= {
     "generic":1
 }
 #multiplicador do multiplicador de marcas
-item_grades = ("+")
+item_grades = ("+", "S", "-", "*")
 
 
 equipable_prosthetics = ("arm", "leg", "eye", "skin")
