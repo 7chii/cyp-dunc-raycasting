@@ -1,9 +1,9 @@
 import pygame as pg
 
-import functions
-import constants
-import grid
-import game_items
+import constmath.functions as functions
+import constmath.constants as constants
+import assets.grid as grid
+import assets.game_items as game_items
 
 
 Grid = {}
@@ -22,31 +22,77 @@ class Player:
         self.left_hand = None
 
         # inventario do jogador
-        self.inventory = ["knife"]
+        self.inventory = ["knife", "ecig", "healthjuice", "parteehard"]
 
         # vida do jogador
         self.hp = 20
+        self.damage_buff = 0   # usado se consumir algo tipo ParteeHard
+        self.buff_timer = 0
 
     @property
     def xy(self) -> constants.Point2:
         return constants.Point2(self.x, self.y)
 
-    def get_damage(self, hand: str) -> int:
-        """Retorna o dano baseado no item equipado em uma mão"""
-        items = game_items.equipable_items_hand_dmg
-        item = None
-        if hand == "right":
-            item = self.right_hand
-        elif hand == "left":
-            item = self.left_hand
+    def use_item(self, item: str) -> str:
+        from assets.game_items import usable_items_values
+        if item not in self.inventory:
+            return f"You don’t have {item} in your inventory!"
 
-        if item and item in items:
-            return items[item]
-        return 1  # soco se não tiver nada equipado
+        if item not in usable_items_values:
+            return f"{item} cannot be used!"
+
+        effect = usable_items_values[item]
+        msg = []
+        if "H" in effect:  # cura
+            self.hp += effect["H"]
+            msg.append(f"+{effect['H']} HP (total: {self.hp})")
+        if "D" in effect:  # buff de dano
+            self.damage_buff += effect["D"]
+            self.buff_timer = 120
+            msg.append(f"+{effect['D']} damage buff (120s)")
+
+        self.inventory.remove(item)  # consumir
+        return f"You used {item}: " + ", ".join(msg)
+
+
+    def get_damage(self, hand: str) -> int:
+            items = game_items.equipable_items_hand_dmg
+            item = None
+            if hand == "right":
+                item = self.right_hand
+            elif hand == "left":
+                item = self.left_hand
+
+            base = 1
+            if item and item in items:
+                base = items[item]
+
+            # aplica buff de dano somente se o timer > 0
+            buff = int(self.damage_buff) if self.buff_timer > 0 else 0
+            return base + buff
+
+    def update_buffs(self, dt: float) -> None:
+        ended = False
+        if self.buff_timer > 0:
+            self.buff_timer = max(0, self.buff_timer - dt)
+            if self.buff_timer == 0:
+                self.damage_buff = 0
+                ended = True
+        return ended
     
     def move(self, dx=0, dy=0, enemies=None) -> None:
         new_x = self.x + dx * constants.STEPSIZE * self.direction.x
         new_y = self.y + dy * constants.STEPSIZE * self.direction.y
+
+        if is_walkable(int(new_x), int(new_y)):
+            if not enemies or all(
+                (new_x - e.x) ** 2 + (new_y - e.y) ** 2 > 0.01 for e in enemies
+            ):
+                self.x, self.y = new_x, new_y
+
+    def run(self, dx=0, dy=0, enemies=None) -> None:
+        new_x = self.x + dx * (constants.STEPSIZE+0.05) * self.direction.x
+        new_y = self.y + dy * (constants.STEPSIZE+0.05) * self.direction.y
 
         if is_walkable(int(new_x), int(new_y)):
             if not enemies or all(
@@ -67,9 +113,15 @@ class Player:
         if pressed[pg.K_RIGHT]:
             self.rotate(constants.DEG_STEP)
         if pressed[pg.K_DOWN]:
-            self.move(-1, -1, enemies)
+            if pressed[pg.K_LSHIFT]:
+                self.run(-1, -1, enemies)
+            else:
+                self.move(-1, -1, enemies)
         if pressed[pg.K_UP]:
-            self.move(1, 1, enemies)
+            if pressed[pg.K_LSHIFT]:
+                self.run(1, 1, enemies)
+            else:
+                self.move(1, 1, enemies)
 
 def is_walkable(x, y):
     if 0 <= x < len(grid.GRID) and 0 <= y < len(grid.GRID[0]):
@@ -90,8 +142,7 @@ class Enemy:
         return constants.Point2(self.x, self.y)
 
     def get_damage(self) -> int:
-        from game_items import equipable_items_hand_dmg
-        return equipable_items_hand_dmg.get(self.weapon, 1)
+        return game_items.equipable_items_hand_dmg.get(self.weapon, 1)
     
 class SparedEnemy(Enemy):
     def __init__(self, xy, name="spared_enemy", dropped_weapon=None):
@@ -134,6 +185,7 @@ class Terminal:
     def parse_command(self, text):
         parts = text.strip().split()
 
+
         # player -a <hand> <enemy>
         if len(parts) == 4 and parts[0] == "player" and parts[1] == "-a":
             hand = parts[2].lower()
@@ -153,6 +205,11 @@ class Terminal:
             if hand in ("right", "left") and item in game_items.equipable_items_hand:
                 return {"type": "equip", "hand": hand, "item": item}
             return None
+        
+        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-use":
+            item = parts[2].lower()
+            return {"type": "use", "item": item}
+
         
         if len(parts) == 3 and parts[0] == "player" and parts[1] == "-i" and parts[2] == "ls":
             return {"type": "inventory_list"}

@@ -6,6 +6,8 @@ import functions
 import time
 import random
 
+tab_pressed = False
+
 def main() -> None:
     player = game_objects.Player((3, 10))
     grid = game_objects.Grid
@@ -33,13 +35,12 @@ def main() -> None:
         player_pos = hack_width // 2
         player_line_idx = hack_height - 1
 
-        enemy_spawn_interval = 0.7
-        enemy_speed = 0.5
-        bullet_speed = 1
+        enemy_spawn_interval = 0.8
+        enemy_speed = 2.0
+        bullet_speed = 0.4
 
         enemies = []
         bullets = []
-        hit_positions = []
 
         messages_backup = terminal.messages.copy()
 
@@ -57,43 +58,51 @@ def main() -> None:
             if elapsed > duration:
                 return True
 
+            # Eventos
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     pg.quit()
                     exit()
 
+            # Movimento jogador
             pressed = pg.key.get_pressed()
             if pressed[pg.K_LEFT] and player_pos > 0:
                 player_pos -= 1
             if pressed[pg.K_RIGHT] and player_pos < hack_width - 1:
                 player_pos += 1
             if pressed[pg.K_SPACE]:
-                if not bullets or bullets[-1][1] != player_line_idx - 1:
+                if not bullets or bullets[-1][1] < player_line_idx - 1:
                     bullets.append([player_pos, player_line_idx - 1])
 
+            # Spawn de inimigos
             if current_time - last_enemy_spawn > enemy_spawn_interval:
-                for i in range(hack_width):
-                    if random.random() < 0.3:
-                        enemies.append([i, 0])
+                max_enemies_per_wave = 6
+                possible_positions = list(range(0, hack_width, 3))  # ≥2 espaços
+                random.shuffle(possible_positions)
+                num_to_spawn = random.randint(1, max_enemies_per_wave)
+                spawn_positions = possible_positions[:num_to_spawn]
+                for x in spawn_positions:
+                    enemies.append([x, 0])
                 last_enemy_spawn = current_time
 
+            # Move inimigos
             enemy_move_accumulator += dt
             if enemy_move_accumulator >= 1 / enemy_speed:
                 for enemy in enemies:
                     enemy[1] += 1
                 enemy_move_accumulator = 0
 
-            enemies = [e for e in enemies if e[1] < hack_height]
+            # Atualiza balas
             bullets = [[b[0], b[1]-bullet_speed] for b in bullets if b[1]-bullet_speed >= 0]
 
+            # Colisão bala x inimigo
             remaining_enemies = []
             new_bullets = bullets.copy()
             for e in enemies:
                 hit = False
                 for b in bullets:
-                    if b[0] == e[0] and b[1] == e[1]:
+                    if b[0] == e[0] and int(b[1]) == e[1]:
                         hit = True
-                        hit_positions.append([e[0], e[1]])
                         if b in new_bullets:
                             new_bullets.remove(b)
                         break
@@ -102,40 +111,45 @@ def main() -> None:
             enemies = remaining_enemies
             bullets = new_bullets
 
-            for e in enemies:
-                if e[0] == player_pos and e[1] == player_line_idx:
-                    return False
+            # Se algum inimigo chegou à última linha, derrota
+            if any(e[1] >= hack_height for e in enemies):
+                return False
 
+            # --- Desenhar ---
             screen.fill((0, 0, 0))
             y = 20
             line_height = terminal.font.get_height() + 5
 
+            # Mensagens
             for msg in messages_backup[-5:]:
                 rendered = terminal.font.render(msg, True, (0, 255, 0))
                 screen.blit(rendered, (20, y))
                 y += line_height
 
-            display_lines = [[' ']*hack_width for _ in range(hack_height)]
+            cell_w = terminal.font.size(' ')[0]
+            cell_h = line_height
+            y_offset = y  # deslocamento vertical após mensagens
 
-            for e in enemies:
-                if 0 <= e[1] < hack_height:
-                    display_lines[e[1]][e[0]] = 'X'
-            for b in bullets:
-                if 0 <= b[1] < hack_height:
-                    display_lines[b[1]][b[0]] = '|'
+            # Desenhar inimigos
+            for ex, ey in enemies:
+                enemy_render = terminal.font.render('*', True, (0, 255, 0))
+                screen.blit(enemy_render, (20 + ex * cell_w, y_offset + ey * cell_h))
 
-            for hx, hy in hit_positions:
-                if 0 <= hy < hack_height:
-                    display_lines[hy][hx] = ' '
+            # Desenhar balas
+            for bx, by in bullets:
+                bullet_render = terminal.font.render('|', True, (0, 255, 0))
+                screen.blit(bullet_render, (20 + bx * cell_w, y_offset + int(by) * cell_h))
 
-            hit_positions = [pos for pos in hit_positions if all(b[1] <= pos[1] for b in bullets)]
-            display_lines[player_line_idx][player_pos] = '@'
+            # Desenhar jogador
+            player_render = terminal.font.render('@', True, (0, 255, 0))
+            player_rect = pg.Rect(20 + player_pos * cell_w, y_offset + player_line_idx * cell_h, cell_w, cell_h)
+            screen.blit(player_render, player_rect.topleft)
 
-            for line in display_lines:
-                line_str = ''.join(line)
-                rendered_line = terminal.font.render(line_str, True, (0, 255, 0))
-                screen.blit(rendered_line, (20, y))
-                y += line_height
+            # Colisão jogador x inimigo
+            for ex, ey in enemies:
+                enemy_rect = pg.Rect(20 + ex * cell_w, y_offset + ey * cell_h, cell_w, cell_h)
+                if player_rect.colliderect(enemy_rect):
+                    return False
 
             pg.display.flip()
 
@@ -144,19 +158,16 @@ def main() -> None:
         hack_height = 8
         duration = 10
         player_pos = hack_width // 2
-        obstacle_interval = 0.5
+        obstacle_interval = 0.1
 
         lines = [[' ']*hack_width for _ in range(hack_height)]
         messages_backup = terminal.messages.copy()
         player_line_idx = hack_height - 4
 
-        for idx in range(player_line_idx + 1, player_line_idx + 4):
-            lines[idx] = [' ']*hack_width
-
         start_time = time.time()
         last_obstacle_time = 0
         mini_clock = pg.time.Clock()
-        path_width = 16
+        path_width = 15
         path_start_col = max(0, min(hack_width - path_width, player_pos - path_width // 2))
 
         running = True
@@ -168,52 +179,75 @@ def main() -> None:
             if elapsed > duration:
                 return True
 
+            # Eventos
             for event in pg.event.get():
                 if event.type == pg.QUIT:
                     pg.quit()
                     exit()
 
+            # Movimento jogador
             pressed = pg.key.get_pressed()
             if pressed[pg.K_LEFT] and player_pos > 0:
-                player_pos -= 1
+                player_pos -= 0.3
             if pressed[pg.K_RIGHT] and player_pos < hack_width - 1:
-                player_pos += 1
+                player_pos += 0.3
 
+            # Gerar obstáculos
             if current_time - last_obstacle_time > obstacle_interval:
                 lines.pop(0)
                 new_line = ['#']*hack_width
                 shift = random.choice([-2, -1, 0, 1, 2])
                 path_start_col += shift
                 path_start_col = max(0, min(hack_width - path_width, path_start_col))
-
                 for i in range(path_start_col, path_start_col + path_width):
                     new_line[i] = ' '
-
                 lines.append(new_line)
                 last_obstacle_time = current_time
 
-            if lines[player_line_idx][player_pos] == '#':
-                return False
-
+            # --- Desenhar ---
             screen.fill((0, 0, 0))
             y = 20
             line_height = terminal.font.get_height() + 5
 
+            # Mensagens
             for msg in messages_backup[-5:]:
                 rendered = terminal.font.render(msg, True, (0, 255, 0))
                 screen.blit(rendered, (20, y))
-                y += line_height
+            y_offset = y + 5 * line_height  # deslocamento após mensagens
 
-            display_lines = [row[:] for row in lines]
-            display_lines[player_line_idx][player_pos] = 'X'
+            # Tamanho célula
+            cell_w = terminal.font.size(' ')[0]
+            cell_h = line_height
 
-            for line in display_lines:
-                line_str = ''.join(line)
-                rendered_line = terminal.font.render(line_str, True, (0, 255, 0))
-                screen.blit(rendered_line, (20, y))
-                y += line_height
+            # Desenhar obstáculos
+            for row_idx, row in enumerate(lines):
+                for col_idx, char in enumerate(row):
+                    if char == '#':
+                        obstacle_render = terminal.font.render('#', True, (0, 255, 0))
+                        screen.blit(obstacle_render, (20 + col_idx * cell_w, y_offset + row_idx * cell_h))
+
+            # Jogador separado
+            player_rect = pg.Rect(
+                20 + player_pos * cell_w,
+                y_offset + player_line_idx * cell_h,
+                cell_w, cell_h
+            )
+            player_render = terminal.font.render('@', True, (0, 255, 0))
+            screen.blit(player_render, player_rect.topleft)
+
+            # Colisão jogador x obstáculos
+            for col, char in enumerate(lines[player_line_idx]):
+                if char == '#':
+                    obstacle_rect = pg.Rect(
+                        20 + col * cell_w,
+                        y_offset + player_line_idx * cell_h,
+                        cell_w, cell_h
+                    )
+                    if player_rect.colliderect(obstacle_rect):
+                        return False
 
             pg.display.flip()
+
 
     black_screen = False
     collided_enemy = None
@@ -233,11 +267,90 @@ def main() -> None:
 
     running = True
     while running:
-        dt = clock.tick(constants.FPS)
+        dt = clock.tick(constants.FPS)/1000.0
+        buff_ended = player.update_buffs(dt)
+        if buff_ended:
+            terminal.messages.append("WARN: dmg buff ended")
         running, events, pressed = handle_events(player, enemies, blocked=black_screen)
         if not running:
             break
+        if tab_pressed:
+            screen.fill((0, 0, 0))
+            def terminal_command_callback(command):
+                if command["type"] == "attack":
+                        terminal.messages.append(
+                            f"ERROR: You can only attack an enemy in combat (none)!"
+                        )
+                elif command["type"] == "hack":
+                        terminal.messages.append(
+                            f"ERROR: You can only hack the enemy currently in combat (none)!"
+                        )
+                elif command["type"] == "pickup":
+                    item = command["item"]
+                    picked = None
+                    for drop in dropped_items:
+                        dx = player.x - drop[0]
+                        dy = player.y - drop[1]
+                        if dx*dx + dy*dy < 1.0 and drop[2] == item:
+                            picked = drop
+                            break
 
+                    if picked:
+                        player.inventory.append(item)
+                        dropped_items.remove(picked)
+                        terminal.messages.append(f"You picked up {item} and added it to your inventory.")
+                    else:
+                        terminal.messages.append(f"No {item} nearby to pick up.")
+                elif command["type"] == "inventory_list":
+                    if player.inventory:
+                        items = ", ".join(player.inventory)
+                        terminal.messages.append(f"Inventory: {items}")
+                    else:
+                        terminal.messages.append("Inventory is empty.")
+
+                elif command["type"] == "equipment_list":
+                    right = player.right_hand if player.right_hand else "empty"
+                    left = player.left_hand if player.left_hand else "empty"
+                    terminal.messages.append(f"Right hand: {right}, Left hand: {left}")
+                elif command["type"] == "equip":
+                    if command["item"] not in player.inventory:
+                        terminal.messages.append(f"You don’t have {command['item']} in your inventory!")
+                    else:
+                        if command["hand"] == "right":
+                            player.right_hand = command["item"]
+                        elif command["hand"] == "left":
+                            player.left_hand = command["item"]
+                        terminal.messages.append(f"You equipped {command['item']} on your {command['hand']} hand.")
+
+                elif command["type"] == "use":
+                    msg = player.use_item(command["item"])
+                    terminal.messages.append(msg)
+                elif command["type"] == "remove":
+                        terminal.messages.append(
+                            f"ERROR: You can only remove the enemy currently in combat (none)!"
+                        )
+                elif command["type"] == "spare":
+                        terminal.messages.append(
+                            f"ERROR: You can only spare the enemy currently in combat (none)!"
+                        )
+
+                elif command["type"] == "runaway":
+                    terminal.messages.append(
+                            f"ERROR: there is nothing to run away from!"
+                        )
+                elif command["type"] == "exit":
+                    terminal.messages.append(
+                            f"ERROR: there is no combat!"
+                        )
+            def terminal_error_callback(cmd_text):
+                terminal.messages.append(f'ERROR: Command "{cmd_text}" not recognized!')
+
+            terminal.handle_event(events, command_callback=terminal_command_callback, error_callback=terminal_error_callback)
+            terminal.draw(screen)
+            
+            pg.display.flip()
+            continue
+            
         if black_screen:
             screen.fill((0, 0, 0))
 
@@ -284,7 +397,7 @@ def main() -> None:
                             collided_enemy.hp = 1
                         else:
                             player.hp -= 3
-                            terminal.messages.append(f"{minigame_choice} FAILED (-3 HP)")
+                            terminal.messages.append(f"HACKING FAILED (-3 HP) Current HP:{player.hp}")
                             if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
                                 dano = collided_enemy.get_damage()
                                 player.hp -= dano
@@ -326,6 +439,9 @@ def main() -> None:
                     right = player.right_hand if player.right_hand else "empty"
                     left = player.left_hand if player.left_hand else "empty"
                     terminal.messages.append(f"Right hand: {right}, Left hand: {left}")
+                elif command["type"] == "use":
+                    msg = player.use_item(command["item"])
+                    terminal.messages.append(msg)
                 elif command["type"] == "equip":
                     if command["item"] not in player.inventory:
                         terminal.messages.append(f"You don’t have {command['item']} in your inventory!")
@@ -472,6 +588,7 @@ def draw_text(screen, font, clock, half_w):
     screen.blit(text, (half_w, 0))
 
 def handle_events(player, enemies=None, blocked=False):
+    global tab_pressed
     running = True
     events = pg.event.get()
     pressed = pg.key.get_pressed()
@@ -481,6 +598,10 @@ def handle_events(player, enemies=None, blocked=False):
             running = False
         elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
             running = False
+        elif event.type == pg.KEYDOWN and event.key == pg.K_TAB:
+            tab_pressed = not tab_pressed
+            blocked = not blocked
+        
 
     if not blocked:
         player.handle_event(events, pressed, enemies)
