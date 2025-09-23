@@ -1,24 +1,36 @@
 -> add if(nenhum inimigo): liberar porta
 -> add porta para subir de nivel
--> add logica if(encostando em porta): mudar nivel
--> add niveis
-
--> geracao dinamica de inimigos ok
--> geracao dinamica de bosses
+-> add logica if(encostando em porta): mudar nivel ok/2 (subida automatica de nivel)
 
 -> add menu inicial
+-> add salvamento (salvar numero do nivel e estado do personagem(itens, equipados, instalados etc))
+
+-> geracao dinamica de bosses (com melhoria conforme nivel)
 -> add boss
+-> spawn de boss a cada multiplo de 5 ate 50
+
+->melhoria de inimigos dinamicamente (mais fortes quanto mais niveis)
+
 -> add mais itens
--> add itens usaveis ok
+
 
 ->add status effects
+->add barra de scroll (com setinha)
+-> comando help
 
-->em combate listar items equipados do inimigo "player -scan enemy1" ok
-->correr (andar mais rapido) ok
+-> add proteses
+-> add lista de proteses instaladas
+-> add comando pra instalar proteses
 
-->add miss attack
+
+-> add niveis ok
+-> geracao dinamica de inimigos ok
+->add miss attack ok
 ->add carregamento entre comandos do jogador ok
 ->escreva os comandos do jogador nas mensagens ok
-->add barra de scroll (com setinha)
-
--> comando help
+->em combate listar items equipados do inimigo "player -scan enemy1" ok
+->correr (andar mais rapido) ok
+-> add itens usaveis ok
+-> nome inimigos ok
+-> autocomplete ok
+-> geracao dinamica de niveis

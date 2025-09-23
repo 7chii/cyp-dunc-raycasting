@@ -20,8 +20,15 @@ item_companies_values= {
     "wyutani":4,
     "generic":1
 }
+
+enemy_seniority = ("junior", "midlevel", "senior")
+enemy_position = ("hr_defense", "medical_defense", "corporate_defense")
+enemy_job = ("sergeant", "captain")
+
 #multiplicador do multiplicador de marcas
 item_grades = ("+", "S", "-", "*")
+
+status_effects = ("Paralysis", "Angry", "Sad", "Anxious")
 
 
 equipable_prosthetics = ("arm", "leg", "eye", "skin")

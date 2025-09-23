@@ -5,12 +5,6 @@ import constmath.constants as constants
 import assets.grid as grid
 import assets.game_items as game_items
 
-
-Grid = {}
-for x, row in enumerate(grid.GRID):
-    for y, element in enumerate(row):
-        Grid[(x, y)] = element
-
 class Player: 
     def __init__(self, xy) -> None:
         (self.x, self.y) = xy
@@ -21,7 +15,7 @@ class Player:
         self.right_hand = None
         self.left_hand = None
         #chance de miss
-        self.chance = 1.0
+        self.chance = 0.1
 
         # inventario do jogador
         self.inventory = ["chainsaw", "ecig", "healthjuice", "parteehard"]
@@ -131,24 +125,32 @@ def is_walkable(x, y):
     return False
 
 class Enemy:
-    def __init__(self, xy, name="enemy", hp=10, weapon="knife") -> None:
+    def __init__(self, xy,chance, name="enemy", hp=10, weapon="knife") -> None:
         self.x, self.y = xy
         self.color = (255, 0, 0)  
         self.size = 0.3
         self.name = name
         self.hp = hp
         self.weapon = weapon
-
+        self.chance = chance
     @property
     def xy(self):
         return constants.Point2(self.x, self.y)
 
     def get_damage(self) -> int:
-        return game_items.equipable_items_hand_dmg.get(self.weapon, 1)
-    
+        dmg = game_items.equipable_items_hand_dmg.get(self.weapon, 1)
+        parts = self.name.strip("-")
+        if "corporate_defense" in parts:
+            dmg += 2
+        if "senior" in parts:
+            dmg += 1
+        if "captain" in parts:
+            dmg += 2
+        return dmg
+
 class SparedEnemy(Enemy):
-    def __init__(self, xy, name="spared_enemy", dropped_weapon=None):
-        super().__init__(xy, name=name, hp=1, weapon=dropped_weapon)
+    def __init__(self, xy, name="spared_enemy", dropped_weapon=None, chance=0):
+        super().__init__(xy, name=name, hp=1, weapon=dropped_weapon, chance=0)
         self.color = (0, 0, 255)  # azul
         self.weapon = None  # n possui arma
         self.size = 0.3
@@ -165,6 +167,8 @@ class Terminal:
         self.height = height
         self.active = True
         self.messages = []  # mensagens postadas
+        
+    # --- helpers (cole acima do Terminal ou no topo do arquivo) ---
 
     def handle_event(self, events, command_callback=None, error_callback=None):
         for event in events:
@@ -183,10 +187,54 @@ class Terminal:
 
                 elif event.key == pg.K_BACKSPACE:
                     self.text = self.text[:-1]
+
                 elif event.key == pg.K_TAB:
-                    pass
-                elif event.unicode and event.key not in (pg.K_ESCAPE, pg.K_RETURN, pg.K_BACKSPACE):
+                    # AUTOCOMPLETE
+                    COMMANDS = get_key_words()
+                    raw = self.text  # texto completo atual (pode ter espaços)
+
+                    # 1) se há um único comando que começa com toda a linha -> completa a linha inteira
+                    full_matches = [c for c in COMMANDS if c.startswith(raw)]
+                    if len(full_matches) == 1:
+                        self.text = full_matches[0] + " "
+                        continue
+                    if len(full_matches) > 1:
+                        lcp = longest_common_prefix(full_matches)
+                        if len(lcp) > len(raw):
+                            self.text = lcp
+                            continue
+                        # não completar mais: mostrar opções ao jogador
+                        #self.messages.append("Possíveis: " + ", ".join(full_matches[:20]))
+                        continue
+
+                    # 2) tenta completar apenas a última palavra (ex: digitei "player -e" -> "-equip")
+                    parts = raw.split()
+                    if not parts:
+                        continue
+
+                    last = parts[-1]
+                    last_matches = [k for k in COMMANDS if k.startswith(last)]
+                    if len(last_matches) == 1:
+                        parts[-1] = last_matches[0]
+                        self.text = " ".join(parts) + " "
+                        continue
+                    if len(last_matches) > 1:
+                        lcp = longest_common_prefix(last_matches)
+                        if len(lcp) > len(last):
+                            parts[-1] = lcp
+                            self.text = " ".join(parts)
+                            continue
+                        # muitas opções: listar
+                        #self.messages.append("Possíveis para '{}': {}".format(last, ", ".join(last_matches[:20])))
+                        continue
+
+                    # 3) se nenhum match, avisa (opcional)
+                    #self.messages.append("Nenhuma sugestão para: " + last)
+
+                elif event.unicode and event.key not in (pg.K_ESCAPE, pg.K_RETURN, pg.K_BACKSPACE, pg.K_TAB):
+                    # adiciona caractere normal
                     self.text += event.unicode
+
 
     def parse_command(self, text):
         parts = text.strip().split()
@@ -259,29 +307,77 @@ class Terminal:
         usable_height = self.height - margin_top - margin_bottom
         total_lines = usable_height // line_height
 
-        # Mostra apenas as últimas mensagens cabíveis
         msgs_to_show = []
         for msg in self.messages:
             wrapped_lines = wrap_text(msg, self.font, self.width)
             msgs_to_show.extend(wrapped_lines)
-        msgs_to_show = msgs_to_show[-total_lines+1:]
+        msgs_to_show = msgs_to_show[-total_lines+2:]
 
         y = margin_top
         for msg in msgs_to_show:
             rendered = self.font.render(msg, True, (0, 255, 0))
             screen.blit(rendered, (20, y))
             y += line_height
+        edit_lines = wrap_text(self.text, self.font, self.width)
 
-        # Linha de edição
-        edit_y = min(y, self.height - margin_bottom - line_height)
-        edit_rendered = self.font.render(self.text, True, (0, 255, 0))
-        screen.blit(edit_rendered, (20, edit_y))
-        cursor = self.font.render("_", True, (0, 255, 0))
-        screen.blit(cursor, (20 + self.font.size(self.text)[0], edit_y))
-        
+        edit_lines = edit_lines[-(total_lines - len(msgs_to_show)):]  
+
+        for i, line in enumerate(edit_lines):
+            edit_y = min(y, self.height - margin_bottom - (len(edit_lines) - i) * line_height)
+            rendered = self.font.render(line, True, (0, 255, 0))
+            screen.blit(rendered, (20, edit_y))
+            y = edit_y + line_height
+
+        if edit_lines:
+            last_line = edit_lines[-1]
+            cursor_x = 20 + self.font.size(last_line)[0]
+            cursor_y = edit_y
+            cursor = self.font.render("_", True, (0, 255, 0))
+            screen.blit(cursor, (cursor_x, cursor_y))
+
+def longest_common_prefix(strs):
+        if not strs:
+            return ""
+        shortest = min(strs, key=len)
+        for i, ch in enumerate(shortest):
+            for s in strs:
+                if s[i] != ch:
+                    return shortest[:i]
+        return shortest
+    
+keywords = [
+        "player -a", "player -h", "player -equip", "player -use", "player -scan",
+        "player -i ls", "player -e ls",
+        "pickup", "combat runaway", "terminal exit",
+        "spare", "-rm", "right", "left"
+    ]
+
+def get_key_words(collided_enemy=None):
+    """
+    Retorna uma lista de possíveis comandos/palavras para autocomplete.
+    Adiciona também os nomes dos inimigos em combate.
+    """
+    global keywords
+
+    try:
+        import assets.game_items as game_items
+        if hasattr(game_items, "equipable_items_hand"):
+            keywords.extend(list(game_items.equipable_items_hand))
+        if hasattr(game_items, "usable_items_values"):
+            keywords.extend(list(game_items.usable_items_values.keys()))
+    except Exception:
+        pass
+
+    # adiciona inimigo atual
+    if collided_enemy and not getattr(collided_enemy, "is_peaceful", False):
+        keywords.append(collided_enemy.name)
+
+    return sorted(set(keywords))
+
+    
 def wrap_text(text, font, max_width):
         """
-        Divide `text` em várias linhas que caibam em `max_width` pixels.
+        divide texto em várias linhas que caibam em max_width pixels.
         Retorna uma lista de linhas.
         """
         words = text.split(" ")

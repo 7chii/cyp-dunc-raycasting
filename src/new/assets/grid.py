@@ -1,5 +1,6 @@
 import constmath.constants as constants
-GRID = (
+import dinamic.dinamic as dinamic
+"""GRID = (
     (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
     (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1),
     (1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1),
@@ -24,8 +25,14 @@ GRID = (
     (1, 0, 1, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1),
     (1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1),
     (1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
-)
-print(GRID[3][10]) 
+)"""
+
+GRID = ()
+def start_grid():
+    global GRID
+    GRID = dinamic.generate_random_grid(24, 24, wall_chance=0.25)
+    return GRID
+     
 
 assert all(len(GRID) == len(row) for row in GRID), "Grid should be square!"
 for row in GRID:

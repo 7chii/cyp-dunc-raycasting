@@ -1,4 +1,4 @@
-import random
+
 import assets.game_objects as game_objects
 import minigames 
 import pygame as pg
@@ -35,19 +35,25 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
             pg.display.flip()
             pg.time.delay(delay)
         terminal.messages.append("loading complete.")
-
+        
 
     def terminal_command_callback(command):
+        import random
         nonlocal black_screen
         nonlocal collided_enemy
         def enemy_turn():
             if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
                 terminal_loading(terminal, screen, label="loading action")
                 dano = collided_enemy.get_damage()
-                player.hp -= dano
-                terminal.messages.append(
-                    f"{collided_enemy.name} attacked you with {collided_enemy.weapon}! (-{dano} HP). Your HP: {player.hp}"
+                if random.random() < collided_enemy.chance:
+                    terminal.messages.append(
+                    f"{collided_enemy.name} tried to attack you with {collided_enemy.weapon}! Dealing no damage! They missed."
                 )
+                else:
+                    player.hp -= dano
+                    terminal.messages.append(
+                        f"{collided_enemy.name} tried to attack you with {collided_enemy.weapon}! (-{dano} HP). Your HP: {player.hp}"
+                    )
                 if player.hp <= 0:
                     terminal.messages.append("You died! Game Over.")
                     import pygame as pg
@@ -55,14 +61,13 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     exit()
 
         if black_screen and collided_enemy:
+
             # comandos durante combate
             if command["type"] == "attack":
                     if collided_enemy and command["target"] == collided_enemy.name:
                         terminal_loading(terminal, screen, label="loading attack")
                         dano = player.get_damage(command["hand"])
-                        miss = random.random < player.chance
-                        if miss:
-                            
+                        if random.random() < player.chance:
                             #collided_enemy.hp = max(1, collided_enemy.hp - dano)
                             terminal.messages.append(
                                 f"{collided_enemy.name} received 0 dmg from {command['hand']} hand! You missed! enemy HP: {collided_enemy.hp}"

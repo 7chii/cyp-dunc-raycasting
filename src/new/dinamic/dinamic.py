@@ -3,6 +3,22 @@ import assets.game_objects as game_objects
 import assets.game_items as game_items
 import constmath.constants as constants
 
+def generate_random_grid(width: int, height: int, wall_chance: float = 0.2) -> list[list[int]]:
+    """
+    Gera uma grid com paredes aleatórias.
+    wall_chance = probabilidade (0.0–1.0) de um espaço interno virar parede.
+    """
+    grid = []
+    for y in range(height):
+        row = []
+        for x in range(width):
+            if x == 0 or x == width - 1 or y == 0 or y == height - 1:
+                row.append(1)  # parede nas bordas
+            else:
+                row.append(1 if random.random() < wall_chance else 0)
+        grid.append(row)
+    return grid
+
 def generate_enemies_distributed(num_enemies, grid_dict, min_distance=2):
     """
     Gera inimigos distribuídos pelo mapa, evitando aglomeração.
@@ -31,9 +47,13 @@ def generate_enemies_distributed(num_enemies, grid_dict, min_distance=2):
 
         # Arma aleatória
         weapon = random.choice(game_items.equipable_items_hand)
-
+        chance = random.random()
+        seniority = random.choice(game_items.enemy_seniority)
+        position = random.choice(game_items.enemy_position)
+        job = random.choice(game_items.enemy_job)
+        name = f"{seniority}-{position}-{job}-{i}"
         # Cria o inimigo
-        enemy = game_objects.Enemy((x + 0.5, y + 0.5), name=f"enemy{i+1}", hp=hp, weapon=weapon)
+        enemy = game_objects.Enemy((x + 0.5, y + 0.5), chance, name=name, hp=hp, weapon=weapon)
         enemies.append(enemy)
 
     return enemies

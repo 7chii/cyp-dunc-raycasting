@@ -4,20 +4,33 @@ import random
 import constmath.constants as constants
 import assets.game_objects as game_objects
 import dinamic.dinamic as dinamic
+import assets.grid as grid_starter
 
 import terminal_commands as terminal_commands
 import rendering as rendering 
 from events import handle_events
 from utils import player_collides_enemy, find_free_position_with_exit
-
+level = 0
 def main() -> None:
     player = game_objects.Player((3, 10))
-    grid = game_objects.Grid
-    enemies = dinamic.generate_enemies_distributed(10, grid)
+    
+    def generate_level():
+        global level
+        GRID = grid_starter.start_grid()
+        level += 1
+        grid_dict = {}
+        for x, row in enumerate(GRID):
+            for y, element in enumerate(row):
+                grid_dict[(x, y)] = element
+        enemies = dinamic.generate_enemies_distributed(level + 1, grid_dict)
+        return GRID, grid_dict, enemies, level
+    
+    #grid = game_objects.Grid
+    #enemies = dinamic.generate_enemies_distributed(10, grid)
+    GRID, grid, enemies, level = generate_level()
     dropped_items = []
-
     pg.init()
-    font = font = pg.font.SysFont("Courier New", 18)
+    font = font = pg.font.SysFont("Courier New", 23)
     clock = pg.time.Clock()
     width, height = constants.SIZE
     terminal = game_objects.Terminal(font, width, height)
@@ -27,13 +40,14 @@ def main() -> None:
     black_screen = False
     collided_enemy = None
     tab_pressed = False
+    see_through = False
 
     running = True
     while running:
         dt = clock.tick(constants.FPS)/1000.0
         if player.update_buffs(dt):
             terminal.messages.append("WARN: buff ended")
-        running, events, tab_pressed= handle_events(black_screen, tab_pressed, running, player, enemies)
+        running, events, tab_pressed, see_through= handle_events(black_screen, tab_pressed, running, player, enemies, see_through)
         if not running:
             break
         
@@ -54,9 +68,21 @@ def main() -> None:
         if hit:
             black_screen = True
             collided_enemy = hit
-            terminal.messages.append(f"Enemy: {hit.name} HP: {hit.hp}")
+            terminal.keywords = game_objects.get_key_words(collided_enemy)
+            terminal.messages.append(f"name: {hit.name} HP: {hit.hp}")
+            if hit.chance >= 0.6:
+                terminal.messages.append(f"{hit.name} seems unlucky!")
             pg.display.flip()
             continue
+        all_spared = allspared(enemies)
+        if not enemies or all_spared:
+            if "you have cleared this level!" not in terminal.messages:
+                terminal.messages.append("you have cleared this level!")
+            GRID, grid, enemies, level = generate_level()
+            dropped_items = []
+            player.x, player.y = 3, 10
+            
+
 
         rendering.clear_screen(screen)
         rendering.draw_floor(screen, width, height)
@@ -64,9 +90,16 @@ def main() -> None:
         
         
         rendering.cast_rays(screen, player.xy, player.direction, player.plane, grid, width, height)
-        rendering.draw_enemies(screen, player, enemies, grid, width, height)
-        rendering.draw_text(screen, font, clock, half_w)
+        rendering.draw_enemies(screen, player, enemies, grid, width, height, see_through)
+        rendering.draw_level_number(screen, font, level, width-100)
+        rendering.draw_fps(screen, font, clock, half_w)
         pg.display.flip()
+
+def allspared(enemies):
+        if not enemies:
+            return True
+        return all(getattr(enemy, "is_peaceful", False) for enemy in enemies)
+    
 
 if __name__ == "__main__":
     main()

@@ -12,9 +12,13 @@ def draw_floor(screen, width, height):
 def draw_ceiling(screen, width, height):
     pg.draw.rect(screen, constants.CEILING, (0,0,width,height//2))
 
-def draw_text(screen, font, clock, half_w):
+def draw_fps(screen, font, clock, half_w):
     text = font.render(f"fps={int(clock.get_fps())}", False, (255,0,0))
     screen.blit(text, (half_w,0))
+    
+def draw_level_number(screen, font, level, width_minus_100):
+    text = font.render(f"f={level}", False, (255,0,0))
+    screen.blit(text, (width_minus_100,0))
 
 def cast_rays(screen, origin, direction, plane, grid_dict, width, height, step=1):
     assert step >= 1
@@ -44,11 +48,14 @@ def cast_rays(screen, origin, direction, plane, grid_dict, width, height, step=1
         y_end = min(height - 1, int((half_h + line_height / 2)))
 
         pg.draw.line(screen, color, (x, y_start), (x, y_end))
-
-def draw_enemies(screen, player, enemies, grid_dict, width, height):
+def draw_enemies(screen, player, enemies, grid_dict, width, height, see_through_walls=False):
     half_h = height // 2
 
-    enemies_sorted = sorted(enemies, key=lambda e: (e.x - player.x) ** 2 + (e.y - player.y) ** 2, reverse=True)
+    enemies_sorted = sorted(
+        enemies, 
+        key=lambda e: (e.x - player.x) ** 2 + (e.y - player.y) ** 2, 
+        reverse=True
+    )
 
     for enemy in enemies_sorted:
         rel_x = enemy.x - player.x
@@ -62,12 +69,12 @@ def draw_enemies(screen, player, enemies, grid_dict, width, height):
         if transform_y <= 0:
             continue
 
-        enemy_dist = (rel_x**2 + rel_y**2) ** 0.5
-        ray_dir = constants.Point2(rel_x / enemy_dist, rel_y / enemy_dist)
-
-        wall_dist, _, _ = run_along_ray(player.xy, ray_dir, grid_dict)
-        if wall_dist < enemy_dist:
-            continue
+        if not see_through_walls:
+            enemy_dist = (rel_x**2 + rel_y**2) ** 0.5
+            ray_dir = constants.Point2(rel_x / enemy_dist, rel_y / enemy_dist)
+            wall_dist, _, _ = run_along_ray(player.xy, ray_dir, grid_dict)
+            if wall_dist < enemy_dist:
+                continue
 
         enemy_screen_x = int((width / 2) * (1 + transform_x / transform_y))
 
@@ -77,7 +84,12 @@ def draw_enemies(screen, player, enemies, grid_dict, width, height):
         draw_x = enemy_screen_x - enemy_width // 2
         draw_y = half_h - enemy_height // 2
 
-        pg.draw.rect(screen, enemy.color, (draw_x, draw_y, enemy_width, enemy_height))
+        # Se estiver vendo através de paredes, pode desenhar semi-transparente
+        color = enemy.color
+        if see_through_walls:
+            color = (color[0], color[1], color[2], 128)  # RGBA, 128 = semi-transparente
+
+        pg.draw.rect(screen, color, (draw_x, draw_y, enemy_width, enemy_height))
 
 def run_along_ray(start, ray_dir, grid_dict):
     INF = float("inf")
