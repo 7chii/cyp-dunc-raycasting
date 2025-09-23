@@ -29,13 +29,12 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
             empty = " " * (steps - i)
             bar = f"[{filled}{empty}]"
             terminal.messages[-1] = f"{label} {bar}"
-
-            # limpa a tela antes de desenhar
             screen.fill((0, 0, 0))  
             terminal.draw(screen)
 
             pg.display.flip()
             pg.time.delay(delay)
+        terminal.messages.append("loading complete.")
 
 
     def terminal_command_callback(command):
@@ -84,19 +83,20 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     else:
                         player.hp -= 3
                         terminal.messages.append(f"ERROR: HACKING FAILED (-3 HP) Current HP:{player.hp}")
-                        if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
-                            dano = collided_enemy.get_damage()
-                            player.hp -= dano
-                            terminal.messages.append(
-                                f"{collided_enemy.name} attacked you with {collided_enemy.weapon}! (-{dano} HP). Your HP: {player.hp}"
-                            )
-                            if player.hp <= 0:
-                                terminal.messages.append("You died! Game Over.")
-                                pg.quit()
-                                exit()
+                        enemy_turn()
                 else:
                     terminal.messages.append(
                         f"ERROR: You can only hack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
+                    )
+            if command["type"] == "scan":
+                if collided_enemy and collided_enemy.name == command["target"]:
+                    terminal_loading(terminal, screen, label="loading scan")
+                    terminal.messages.append(
+                            f"{collided_enemy.name} holds {collided_enemy.weapon}"
+                    )
+                else:
+                    terminal.messages.append(
+                        f"ERROR: You can only scan the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                     )
             elif command["type"] == "pickup":
                 item = command["item"]
@@ -149,7 +149,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             )
                         enemies.remove(collided_enemy)
                         terminal.messages.append(f"{collided_enemy.name} was removed!")
-                        collided_enemy = None
+                        #collided_enemy = None
                         terminal.text = ""
                     else:
                         terminal.messages.append(
@@ -171,6 +171,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         enemies[enemies.index(collided_enemy)] = spared
                         terminal.messages.append(f"{collided_enemy.name} has been spared and is now peaceful!")
                         collided_enemy = spared
+                        spared.is_peaceful = True
                         terminal.text = ""
                     else:
                         terminal.messages.append(
@@ -222,6 +223,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append(
                         f"ERROR: You can only hack the enemy currently in combat (none)!"
                     )
+            if command["type"] == "scan":
+                    terminal.messages.append(
+                        f"ERROR: You can only scan the enemy currently in combat (none)!"
+                    )
             elif command["type"] == "pickup":
                 item = command["item"]
                 picked = None
@@ -240,13 +245,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append(f"No {item} nearby to pick up.")
             elif command["type"] == "inventory_list":
                 if player.inventory:
-                    terminal.messages.append("Inventory:")
-                    max_per_line = 5  # numero de itens por linha
-                    for i in range(0, len(player.inventory), max_per_line):
-                        line = ", ".join(player.inventory[i:i+max_per_line])
-                        terminal.messages.append("  " + line)
+                        items = ", ".join(player.inventory)
+                        terminal.messages.append(f"Inventory: {items}")
                 else:
-                    terminal.messages.append("Inventory is empty.")
+                        terminal.messages.append("Inventory is empty.")
 
 
             elif command["type"] == "equipment_list":

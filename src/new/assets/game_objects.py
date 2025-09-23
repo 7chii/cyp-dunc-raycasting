@@ -22,7 +22,7 @@ class Player:
         self.left_hand = None
 
         # inventario do jogador
-        self.inventory = ["knife", "ecig", "healthjuice", "parteehard"]
+        self.inventory = ["chainsaw", "ecig", "healthjuice", "parteehard"]
 
         # vida do jogador
         self.hp = 20
@@ -181,6 +181,8 @@ class Terminal:
 
                 elif event.key == pg.K_BACKSPACE:
                     self.text = self.text[:-1]
+                elif event.key == pg.K_TAB:
+                    pass
                 elif event.unicode and event.key not in (pg.K_ESCAPE, pg.K_RETURN, pg.K_BACKSPACE):
                     self.text += event.unicode
 
@@ -211,6 +213,11 @@ class Terminal:
         if len(parts) == 3 and parts[0] == "player" and parts[1] == "-use":
             item = parts[2].lower()
             return {"type": "use", "item": item}
+        
+        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-scan":
+            target = parts[2].lower()
+            return {"type": "scan", "target": target}
+
 
         
         if len(parts) == 3 and parts[0] == "player" and parts[1] == "-i" and parts[2] == "ls":
@@ -238,7 +245,7 @@ class Terminal:
             return {"type": "runaway"}
 
         # combat exit
-        if text.strip() == "combat exit":
+        if text.strip() == "terminal exit":
             return {"type": "exit"}
 
         return None

@@ -3,12 +3,15 @@
 -> add logica if(encostando em porta): mudar nivel
 -> add niveis
 
+-> geracao dinamica de inimigos
+-> geracao dinamica de bosses
+
 -> add menu inicial
 -> add boss
 -> add mais itens
 -> add itens usaveis ok
 
-->em combate listar items equipados do inimigo
+->em combate listar items equipados do inimigo "player -scan enemy1"
 ->correr (andar mais rapido) ok
 
 ->add miss attack

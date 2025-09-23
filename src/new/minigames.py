@@ -49,9 +49,9 @@ def run_space_invaders_minigame(screen, terminal):
         # Movimento jogador
         pressed = pg.key.get_pressed()
         if pressed[pg.K_LEFT]:
-            player_pos = max(0, player_pos - dt * 10)
+            player_pos = max(0, player_pos - dt * 30)
         if pressed[pg.K_RIGHT]:
-            player_pos = min(hack_width - 1, player_pos + dt * 10)
+            player_pos = min(hack_width - 1, player_pos + dt * 30)
 
         # Atirar
         if pressed[pg.K_SPACE] and not space_pressed_last_frame:

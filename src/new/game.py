@@ -3,6 +3,7 @@ import time
 import random
 import constmath.constants as constants
 import assets.game_objects as game_objects
+import dinamic.dinamic as dinamic
 
 import terminal_commands as terminal_commands
 import rendering as rendering 
@@ -12,11 +13,7 @@ from utils import player_collides_enemy, find_free_position_with_exit
 def main() -> None:
     player = game_objects.Player((3, 10))
     grid = game_objects.Grid
-    enemies = [
-        game_objects.Enemy((5.5, 5.5), name="enemy1", hp=12, weapon="knife"),
-        game_objects.Enemy((10.5, 8.5), name="enemy2", hp=8, weapon="hammer"),
-        game_objects.Enemy((15.5, 12.5), name="enemy3", hp=20, weapon="chainsaw"),
-    ]
+    enemies = dinamic.generate_enemies_distributed(10, grid)
     dropped_items = []
 
     pg.init()
@@ -35,7 +32,7 @@ def main() -> None:
     while running:
         dt = clock.tick(constants.FPS)/1000.0
         if player.update_buffs(dt):
-            terminal.messages.append("WARN: dmg buff ended")
+            terminal.messages.append("WARN: buff ended")
         running, events, tab_pressed= handle_events(black_screen, tab_pressed, running, player, enemies)
         if not running:
             break
