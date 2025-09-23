@@ -91,7 +91,10 @@ def main() -> None:
         
         rendering.cast_rays(screen, player.xy, player.direction, player.plane, grid, width, height)
         rendering.draw_enemies(screen, player, enemies, grid, width, height, see_through)
+        #ascii_frame = rendering.surface_to_ascii(screen, font)
+        #screen.blit(ascii_frame, (0, 0))
         rendering.draw_level_number(screen, font, level, width-100)
+        
         rendering.draw_fps(screen, font, clock, half_w)
         pg.display.flip()
 

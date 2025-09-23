@@ -33,4 +33,4 @@
 -> add itens usaveis ok
 -> nome inimigos ok
 -> autocomplete ok
--> geracao dinamica de niveis
+-> geracao dinamica de niveis ok

@@ -20,6 +20,10 @@ item_companies_values= {
     "wyutani":4,
     "generic":1
 }
+#Adjacent processing unit
+equipable_prosthetics = ("arm", "leg", "eye", "skin", "APU")
+
+
 
 enemy_seniority = ("junior", "midlevel", "senior")
 enemy_position = ("hr_defense", "medical_defense", "corporate_defense")
@@ -30,5 +34,3 @@ item_grades = ("+", "S", "-", "*")
 
 status_effects = ("Paralysis", "Angry", "Sad", "Anxious")
 
-
-equipable_prosthetics = ("arm", "leg", "eye", "skin")

@@ -19,6 +19,34 @@ def draw_fps(screen, font, clock, half_w):
 def draw_level_number(screen, font, level, width_minus_100):
     text = font.render(f"f={level}", False, (255,0,0))
     screen.blit(text, (width_minus_100,0))
+    
+ASCII_CHARS = constants.ASCII_CHARS
+
+def surface_to_ascii(surface, font, char_width=8, char_height=16):
+    width, height = surface.get_size()
+    cols = width // char_width
+    rows = height // char_height
+    
+    ascii_surface = pg.Surface((width, height))
+    ascii_surface.fill((0, 0, 0))
+
+    for y in range(rows):
+        for x in range(cols):
+            # pegar média da cor no bloco
+            rect = pg.Rect(x * char_width, y * char_height, char_width, char_height)
+            sub = surface.subsurface(rect)
+            arr = pg.surfarray.array3d(sub)
+            brightness = arr.mean() / 255.0  # normaliza 0-1
+            
+            # converte em índice ASCII
+            idx = int(brightness * (len(ASCII_CHARS) - 1))
+            char = ASCII_CHARS[idx]
+
+            # renderiza caractere
+            text = font.render(char, True, (255, 255, 255))
+            ascii_surface.blit(text, (x * char_width, y * char_height))
+
+    return ascii_surface
 
 def cast_rays(screen, origin, direction, plane, grid_dict, width, height, step=1):
     assert step >= 1
