@@ -3,7 +3,7 @@
 -> add logica if(encostando em porta): mudar nivel
 -> add niveis
 
--> geracao dinamica de inimigos
+-> geracao dinamica de inimigos ok
 -> geracao dinamica de bosses
 
 -> add menu inicial
@@ -11,11 +11,13 @@
 -> add mais itens
 -> add itens usaveis ok
 
-->em combate listar items equipados do inimigo "player -scan enemy1"
+->add status effects
+
+->em combate listar items equipados do inimigo "player -scan enemy1" ok
 ->correr (andar mais rapido) ok
 
 ->add miss attack
-->add carregamento entre comandos do jogador ok/2
+->add carregamento entre comandos do jogador ok
 ->escreva os comandos do jogador nas mensagens ok
 ->add barra de scroll (com setinha)
 

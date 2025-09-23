@@ -20,6 +20,8 @@ class Player:
         # maos
         self.right_hand = None
         self.left_hand = None
+        #chance de miss
+        self.chance = 1.0
 
         # inventario do jogador
         self.inventory = ["chainsaw", "ecig", "healthjuice", "parteehard"]

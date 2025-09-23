@@ -60,10 +60,18 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     if collided_enemy and command["target"] == collided_enemy.name:
                         terminal_loading(terminal, screen, label="loading attack")
                         dano = player.get_damage(command["hand"])
-                        collided_enemy.hp = max(1, collided_enemy.hp - dano)
-                        terminal.messages.append(
-                            f"{collided_enemy.name} received {dano} dmg from {command['hand']} hand! enemy HP: {collided_enemy.hp}"
-                        )
+                        miss = random.random < player.chance
+                        if miss:
+                            
+                            #collided_enemy.hp = max(1, collided_enemy.hp - dano)
+                            terminal.messages.append(
+                                f"{collided_enemy.name} received 0 dmg from {command['hand']} hand! You missed! enemy HP: {collided_enemy.hp}"
+                            )
+                        else:
+                            collided_enemy.hp = max(1, collided_enemy.hp - dano)
+                            terminal.messages.append(
+                                f"{collided_enemy.name} received {dano} dmg from {command['hand']} hand! enemy HP: {collided_enemy.hp}"
+                            )
                         enemy_turn()
                     else:
                         terminal.messages.append(
