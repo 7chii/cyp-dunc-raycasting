@@ -69,7 +69,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         # aplica dano
                         player.hp -= dmg
                         terminal.messages.append(
-                            f"{collided_enemy.name} attacked you with {collided_enemy.weapon}! (-{dano} HP). Your HP: {player.hp}"
+                            f"{collided_enemy.name} attacked you with {collided_enemy.weapon}! (-{dmg} HP). Your HP: {player.hp}"
                         )
 
                     if player.hp <= 0:
