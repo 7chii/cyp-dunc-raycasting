@@ -2,7 +2,7 @@ from collections import namedtuple
 
 Point2 = namedtuple("Point2", "x y")
 
-SIZE = (700, 700)
+SIZE = (800, 600)
 FPS = (60)
 
 STEP = 1
@@ -13,6 +13,7 @@ CEILING = (25, 25, 25)
 SPARED = (0, 0, 255)
 ENEMY = (255, 0, 0)
 BOSS = (0, 255, 0)   
+ITEMS = (30, 255, 30)
 
 ASCII_CHARS = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
 

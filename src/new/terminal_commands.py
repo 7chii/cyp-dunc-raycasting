@@ -2,9 +2,10 @@
 import assets.game_objects as game_objects
 import assets.game_items as game_items
 import minigames 
+import dinamic.item_dinamic as item_dinamic
 import pygame as pg
 
-def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid):
+def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level):
     """
     lida com os comandos do terminal (apertar TAB ou combate) e retorna
     os estados atualizados de black_screen e collided_enemy
@@ -35,7 +36,6 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
         nonlocal collided_enemy
         def enemy_turn():
             if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
-                player.is_stunned = False  # reset stun antes do ataque
                 if(collided_enemy.is_stunned):
                     terminal.messages.append(
                         f"{collided_enemy.name} is stunned."
@@ -81,18 +81,21 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
 
         if black_screen and collided_enemy:
             if player.is_stunned:
+                terminal.messages.append("You are stunned and lose your turn!")
                 enemy_turn()
+                player.is_stunned = False
+                return black_screen, collided_enemy
 
             # comandos durante combate
             if command["type"] == "attack":
                 if collided_enemy and command["target"] == collided_enemy.name:
                     terminal_loading(terminal, screen, label="loading attack")
-                    dmg, chance_to_hit, stun_chance, force_unequip  = player.get_damage(command["hand"])
+                    dmg, chance_to_hit, stun_chance, force_unequip, weapon  = player.get_damage(command["hand"])
 
                     # verifica se errou
                     if random.random() < chance_to_hit + player.chance:
                         terminal.messages.append(
-                            f"{collided_enemy.name} received 0 dmg from {command['hand']} hand! You missed! enemy HP: {collided_enemy.hp}"
+                            f"{collided_enemy.name} received 0 dmg from {command['hand']} handed weapon! You missed! enemy HP: {collided_enemy.hp}"
                         )
                     else:
                         # aplica stun
@@ -108,14 +111,8 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
 
                         else:
                             collided_enemy.hp = max(1, collided_enemy.hp - dmg)
-                            if(player.right_hand):
-                                weapon = player.right_hand
-                            if(player.left_hand):
-                                weapon = player.left_hand
-                            else:
-                                weapon = "fists"
                             terminal.messages.append(
-                                f"{collided_enemy.name} received {dmg} dmg from {command['hand']} with {weapon}! enemy HP: {collided_enemy.hp}"
+                                f"{collided_enemy.name} received {dmg} dmg from {command['hand']} handed weapon: {weapon}! enemy HP: {collided_enemy.hp}"
                             )
                     enemy_turn()  # turno do inimigo acontece normalmente
                 else:
@@ -126,6 +123,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
             if command["type"] == "hack":
                 if collided_enemy and collided_enemy.name == command["target"]:
                     terminal_loading(terminal, screen, label="loading hack")
+                    
                     success = minigames.run_minigames(screen, terminal)
 
                     if success:
@@ -143,7 +141,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         f"ERROR: You can only hack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                     )
             if command["type"] == "scan":
-                print(collided_enemy.name)
+                #print(f"{collided_enemy.name}, {command['target']}")
                 if collided_enemy and collided_enemy.name == command["target"]:
                     terminal_loading(terminal, screen, label="loading scan")
                     terminal.messages.append(
@@ -159,20 +157,26 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 for drop in dropped_items:
                     dx = player.x - drop[0]
                     dy = player.y - drop[1]
-                    if dx*dx + dy*dy < 1.0 and drop[2] == item:
+                    if dx * dx + dy * dy < 1.0 and drop[2] == item:
                         picked = drop
                         break
 
                 if picked:
-                    player.inventory.append(item)
+                    # se já tem o item, aumenta a quantidade
+                    if item in player.inventory:
+                        player.inventory[item] += 1
+                    else:
+                        player.inventory[item] = 1
                     dropped_items.remove(picked)
                     terminal.messages.append(f"You picked up {item} and added it to your inventory.")
                 else:
                     terminal.messages.append(f"No {item} nearby to pick up.")
+
             elif command["type"] == "inventory_list":
                 if player.inventory:
-                    items = ", ".join(player.inventory)
+                    items = ", ".join([f"{name} x{qty}" for name, qty in player.inventory.items()])
                     terminal.messages.append(f"Inventory: {items}")
+                    game_objects.generate_item_keywords(player.inventory, dropped_items)
                 else:
                     terminal.messages.append("Inventory is empty.")
 
@@ -180,6 +184,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 right = player.right_hand if player.right_hand else "empty"
                 left = player.left_hand if player.left_hand else "empty"
                 terminal.messages.append(f"Right hand: {right}, Left hand: {left}")
+                game_objects.generate_item_keywords(player.inventory, dropped_items)
             elif command["type"] == "use":
                 msg = player.use_item(command["item"])
                 terminal.messages.append(msg)
@@ -193,8 +198,12 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append(f"{item_type} cannot be equipped!")
                 else:
                     if command["hand"] == "right":
+                        if player.left_hand == item_full:
+                            player.left_hand = None
                         player.right_hand = item_full
                     elif command["hand"] == "left":
+                        if player.right_hand == item_full:
+                            player.right_hand = None
                         player.left_hand = item_full
                     terminal.messages.append(f"You equipped {item_full} on your {command['hand']} hand.")
 
@@ -208,6 +217,13 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             terminal.messages.append(
                                 f"{collided_enemy.name} died and dropped {collided_enemy.weapon} on the ground!"
                             )
+                            drop = random.choice(list(game_items.usable_items) + [None]) #50/50
+                            if drop:
+                                drop = item_dinamic.generate_item(drop, level)
+                                drop = drop['name']
+                                dropped_items.append((collided_enemy.x, collided_enemy.y, drop))
+                                terminal.messages.append(f"{collided_enemy.name} also dropped {drop}!")
+                        game_objects.generate_item_keywords(player.inventory, dropped_items)
                         enemies.remove(collided_enemy)
                         terminal.messages.append(f"{collided_enemy.name} was removed!")
                         #collided_enemy = None
@@ -231,6 +247,13 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         spared = game_objects.SparedEnemy((collided_enemy.x, collided_enemy.y), name=collided_enemy.name)
                         enemies[enemies.index(collided_enemy)] = spared
                         terminal.messages.append(f"{collided_enemy.name} has been spared and is now peaceful!")
+                        drop = random.choice(list(game_items.usable_items) + [None]) #50/50
+                        if drop:
+                                drop = item_dinamic.generate_item(drop, level)
+                                drop = drop['name']
+                                dropped_items.append((collided_enemy.x, collided_enemy.y, drop))
+                                terminal.messages.append(f"{collided_enemy.name} also dropped {drop}!")
+                        game_objects.generate_item_keywords(player.inventory, dropped_items)
                         collided_enemy = spared
                         spared.is_peaceful = True
                         terminal.text = ""
@@ -294,28 +317,35 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 for drop in dropped_items:
                     dx = player.x - drop[0]
                     dy = player.y - drop[1]
-                    if dx*dx + dy*dy < 1.0 and drop[2] == item:
+                    if dx * dx + dy * dy < 1.0 and drop[2] == item:
                         picked = drop
                         break
 
                 if picked:
-                    player.inventory.append(item)
+                    # se já tem o item, aumenta a quantidade
+                    if item in player.inventory:
+                        player.inventory[item] += 1
+                    else:
+                        player.inventory[item] = 1
                     dropped_items.remove(picked)
                     terminal.messages.append(f"You picked up {item} and added it to your inventory.")
                 else:
                     terminal.messages.append(f"No {item} nearby to pick up.")
+
             elif command["type"] == "inventory_list":
                 if player.inventory:
-                        items = ", ".join(player.inventory)
-                        terminal.messages.append(f"Inventory: {items}")
+                    items = ", ".join([f"{name} x{qty}" for name, qty in player.inventory.items()])
+                    terminal.messages.append(f"Inventory: {items}")
+                    game_objects.generate_item_keywords(player.inventory, dropped_items)
                 else:
-                        terminal.messages.append("Inventory is empty.")
+                    terminal.messages.append("Inventory is empty.")
 
 
             elif command["type"] == "equipment_list":
                 right = player.right_hand if player.right_hand else "empty"
                 left = player.left_hand if player.left_hand else "empty"
                 terminal.messages.append(f"Right hand: {right}, Left hand: {left}")
+                game_objects.generate_item_keywords(player.inventory, dropped_items)
             elif command["type"] == "equip":
                 item_full = command["item"]  # "generic-chainsaw"
                 item_type = item_full.split("-")[-1]  # pega só "chainsaw"
@@ -326,8 +356,12 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append(f"{item_type} cannot be equipped!")
                 else:
                     if command["hand"] == "right":
+                        if player.left_hand == item_full:
+                            player.left_hand = None
                         player.right_hand = item_full
                     elif command["hand"] == "left":
+                        if player.right_hand == item_full:
+                            player.right_hand = None
                         player.left_hand = item_full
                     terminal.messages.append(f"You equipped {item_full} on your {command['hand']} hand.")
 

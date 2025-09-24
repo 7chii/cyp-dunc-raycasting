@@ -20,18 +20,17 @@
 ->testar efeitos de arma
 -> testar geracao de bosses ok/2
     ->aumentar dados dos bosses ok/2
--> add drop de itens usaveis-> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
--> add boss ok
-
--> fix drop de itens (atualmente apenas uma lista com [0], [1] o x e y, e [2] o item)
--> visualizar itens no mapa
--> logica de armas (grades/empresas)
 
 -> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
--> autocomplete ok/2 (novas roots :itens)
+-> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
+-> logica de armas (grades/empresas) ok
+-> fix drop de itens ok
+-> visualizar itens no mapa ok
+-> autocomplete ok
 -> add boss ok
+-> add drop de itens usaveis ok
 -> spawn de boss a cada multiplo de 5 ate 50 ok 
 -> boss de cor diferente ok 
 ->testar visual spare em ascii ok

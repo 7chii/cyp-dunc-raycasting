@@ -199,7 +199,7 @@ def run_hack_minigame(screen, terminal):
         for msg in messages_backup[-5:]:
             rendered = terminal.font.render(msg, True, (0, 255, 0))
             screen.blit(rendered, (20, y))
-        y_offset = y + 5 * line_height  # deslocamento após mensagens
+            y += line_height
 
         # Tamanho célula
         cell_w = terminal.font.size(' ')[0]
@@ -210,12 +210,12 @@ def run_hack_minigame(screen, terminal):
             for col_idx, char in enumerate(row):
                 if char == '#':
                     obstacle_render = terminal.font.render('#', True, (0, 255, 0))
-                    screen.blit(obstacle_render, (20 + col_idx * cell_w, y_offset + row_idx * cell_h))
+                    screen.blit(obstacle_render, (20 + col_idx * cell_w, y + row_idx * cell_h))
 
         # Jogador separado
         player_rect = pg.Rect(
             20 + player_pos * cell_w,
-            y_offset + player_line_idx * cell_h,
+            y + player_line_idx * cell_h,
             cell_w, cell_h
         )
         player_render = terminal.font.render('@', True, (0, 255, 0))
@@ -226,7 +226,7 @@ def run_hack_minigame(screen, terminal):
             if char == '#':
                 obstacle_rect = pg.Rect(
                     20 + col * cell_w,
-                    y_offset + player_line_idx * cell_h,
+                    y + player_line_idx * cell_h,
                     cell_w, cell_h
                 )
                 if player_rect.colliderect(obstacle_rect):

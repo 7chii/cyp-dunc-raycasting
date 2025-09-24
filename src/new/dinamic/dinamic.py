@@ -123,9 +123,10 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         boss_hp = boss_hp_base + num_grades * 100 
         chosen = random.choice(game_items.equipable_items_hand)
         boss_weapon = item_dinamic.generate_weapon(chosen, level)
+        boss_weapon = boss_weapon['name']
         boss_chance = 0.9
 
-        boss = game_objects.Enemy((x + 0.5, y + 0.5), boss_chance, name=boss_name, hp=boss_hp, weapon=boss_weapon)
+        boss = game_objects.Enemy((x + 0.5, y + 0.5), boss_chance, name=boss_name, hp=boss_hp, weapon=boss_weapon, is_boss=True)
         boss.is_boss = True  
 
         # Progressão de dano extra: até +8 por símbolo no final
@@ -163,14 +164,19 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         # Progressão de símbolos: até 4 no nível 50
         max_grades = min(level // 15, 4)
         min_grades = 0
+        symbolVal = 1
         if level >= 5:
             min_grades = 1
+            symbolVal = 7
         if level >= 20:
             min_grades = 2
+            symbolVal = 10
         if level >= 30:
             min_grades = 3
+            symbolVal = 30
         if level>= 40:
             min_grades = 4
+            symbolVal = 50
         if max_grades < min_grades:
             max_grades = min_grades
 
@@ -186,8 +192,11 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
 
 
         # HP extra por símbolo
-        hp_base = int(20 + level**1.5 + random.randint(0, 30))  
-        hp = hp_base + num_grades * 25  # cada símbolo dá +25 HP # cada símbolo adiciona +5 HP
+        hp_base = 5 + level * 3  # nível 1 -> 8 HP, nível 2 -> 11 HP
+        # pequeno bônus aleatório
+        hp_base += random.randint(0, 3)  # variação leve
+        # bônus por símbolos
+        hp = hp_base + num_grades * symbolVal # cada símbolo adiciona +5 HP
 
         enemy = game_objects.Enemy((x + 0.5, y + 0.5), chance, name=name, hp=hp, weapon=weapon)
 

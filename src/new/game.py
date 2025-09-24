@@ -17,7 +17,7 @@ def main() -> None:
         global level
         GRID = grid_starter.start_grid()
         #level += 1
-        level = 50
+        level = 49
         grid_dict = {}
         for x, row in enumerate(GRID):
             for y, element in enumerate(row):
@@ -56,7 +56,7 @@ def main() -> None:
             screen.fill((0, 0, 0))
             black_screen, collided_enemy = terminal_commands.handle_terminal_commands(
                 screen, enemies, player, terminal, events, dropped_items,
-                black_screen, collided_enemy, grid
+                black_screen, collided_enemy, grid, level
             )
             continue
         
@@ -91,7 +91,7 @@ def main() -> None:
     
         rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, font)
 
-    
+        rendering.draw_items_ascii(screen, player, dropped_items, grid, width, height, font)
         rendering.draw_enemies_ascii(screen, player, enemies, grid, width, height, font, see_through)
         rendering.draw_level_number(screen, font, level, width-100)
         

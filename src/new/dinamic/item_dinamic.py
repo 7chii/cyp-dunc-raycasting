@@ -1,6 +1,7 @@
 import random
 import assets.game_items as game_items 
 generated_weapons = {}
+generated_items = {}
 
 equipable_items_hand = game_items.equipable_items_hand
 equipable_items_hand_dmg = game_items.equipable_items_hand_dmg
@@ -74,6 +75,45 @@ def generate_weapon(name, level):
     # salva no dicionário
     generated_weapons[full_name] = weapon_obj
     return weapon_obj
+
+def generate_item(name: str, level: int):
+    """
+    Gera um consumível com progressão baseada no nível (1–50).
+    Usa empresas para escalar o valor dos efeitos.
+    """
+    if name not in game_items.usable_items:
+        raise ValueError(f"{name} não é um item consumível válido!")
+
+    # -------- Progressão de empresas --------
+    if level < 10:
+        possible_companies = ["generic", "megacorp"]
+    elif level < 25:
+        possible_companies = ["generic", "megacorp", "n3kst"]
+    else:
+        possible_companies = ["megacorp", "n3kst", "wyutani"]
+
+    company = random.choice(possible_companies)
+    multiplier = item_companies_values[company]
+
+    # -------- Valores base do item --------
+    base_effects = game_items.usable_items_values[name].copy()
+
+    # multiplica valores conforme empresa e level
+    scaled_effects = {}
+    for k, v in base_effects.items():
+        scaled_effects[k] = int(v * multiplier * (1 + level * 0.05))  # escala com level também
+
+    # -------- Nome completo --------
+    full_name = f"{company}-{name}"
+
+    item_obj = {
+        "name": full_name,
+        "effects": scaled_effects,
+        "level": level
+    }
+
+    generated_items[full_name] = item_obj
+    return item_obj
 
 # -------- Exemplo: gerar armas para todos os níveis --------
 for lvl in range(1, 51):

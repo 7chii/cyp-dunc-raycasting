@@ -20,7 +20,13 @@ class Player:
         self.chance = 0.1
 
         # inventario do jogador
-        self.inventory = ["generic-chainsaw", "ecig", "healthjuice", "parteehard"]
+        self.inventory = {
+            "generic-chainsaw": 1,   # equipável → sempre 1
+            "generic-ecig": 5,               # consumível
+            "generic-healthjuice": 2,        # consumível
+            "generic-parteehard": 1          # consumível
+        }
+
 
         # vida do jogador
         self.hp = 10000
@@ -31,26 +37,42 @@ class Player:
     def xy(self) -> constants.Point2:
         return constants.Point2(self.x, self.y)
 
-    def use_item(self, item: str) -> str:
-        from assets.game_items import usable_items_values
-        if item not in self.inventory:
-            return f"You don’t have {item} in your inventory!"
+    def use_item(self, item_name: str) -> str:
+        """Usa um item do inventário, aplicando efeitos com multiplicadores de marca e reduzindo quantidade."""
+        if item_name not in self.inventory:
+            return f"You don’t have {item_name}!"
 
-        if item not in usable_items_values:
-            return f"{item} cannot be used!"
+        # separar prefixo (marca) do nome base
+        parts = item_name.split("-", 1)
+        if len(parts) == 2:
+            company, base_name = parts
 
-        effect = usable_items_values[item]
-        msg = []
-        if "H" in effect:  # cura
-            self.hp += effect["H"]
-            msg.append(f"+{effect['H']} HP (total: {self.hp})")
-        if "D" in effect:  # buff de dano
-            self.damage_buff += effect["D"]
-            self.buff_timer = 120
-            msg.append(f"+{effect['D']} damage buff (120s)")
+        # checar se é consumível
+        if base_name in game_items.usable_items:
+            effect = game_items.usable_items_values[base_name]
+            multiplier = game_items.item_companies_values.get(company, 1)
+            msg_parts = []
 
-        self.inventory.remove(item)  # consumir
-        return f"You used {item}: " + ", ".join(msg)
+            if "H" in effect:
+                hp_gain = int(effect["H"] * multiplier)
+                self.hp += hp_gain
+                msg_parts.append(f"+{hp_gain} HP")
+            
+            if "D" in effect:
+                dmg_buff = int(effect["D"] * multiplier)
+                self.damage_buff += dmg_buff
+                self.buff_timer = 120  # dura 5 turnos
+                msg_parts.append(f"+{dmg_buff} Damage buff")
+
+            # diminuir quantidade
+            self.inventory[item_name] -= 1
+            if self.inventory[item_name] <= 0:
+                del self.inventory[item_name]
+
+            return f"You used {item_name}! ({', '.join(msg_parts)})"
+
+        # se não for consumível
+        return f"{item_name} cannot be used!"
 
 
     def get_damage(self, hand: str) -> int:
@@ -67,7 +89,7 @@ class Player:
                     company, base, symbols = parse_weapon(item)
 
             if not item:
-                return self.extra_damage  # caso não tenha arma
+                return self.extra_damage, 1.0, 0.0, False, None  # caso não tenha arma
 
           # nome da arma
 
@@ -81,7 +103,7 @@ class Player:
             # aplica multiplicador da marca
             dmg *= game_items.item_companies_values.get(company, 1)
             
-            return int(dmg), chance_to_hit, stun_chance, force_unequip
+            return int(dmg), chance_to_hit, stun_chance, force_unequip, item
 
     def update_buffs(self, dt: float) -> None:
         ended = False
@@ -141,7 +163,7 @@ def is_walkable(x, y):
     return False
 
 class Enemy:
-    def __init__(self, xy,chance, name="enemy", hp=10, weapon="knife") -> None:
+    def __init__(self, xy,chance, name="enemy", hp=10, weapon="knife", is_boss=False) -> None:
         self.x, self.y = xy
         self.color = constants.ENEMY
         self.size = 0.3
@@ -151,6 +173,7 @@ class Enemy:
         self.is_stunned = False
         self.extra_damage = self.hp/10
         self.chance = chance
+        self.is_boss = is_boss
     @property
     def xy(self):
         return constants.Point2(self.x, self.y)
@@ -171,6 +194,9 @@ class Enemy:
                 chance_to_hit, stun_chance, force_unequip, extra_dmg_weapon = parse_weapon_grades(symbols)
         else:
             extra_dmg_weapon = 0
+            chance_to_hit = 1.0 - self.chance
+            force_unequip = False
+            stun_chance = 0
 
         dmg += self.extra_damage + extra_dmg_weapon
         
@@ -189,11 +215,10 @@ class Enemy:
             grade_str = "-".join(grade_part)
         else:
             grade_str = ""
-
-        plus_count = grade_str.count("+")
-        s_count = grade_str.count("S")
-        op_count = grade_str.count("OP")
-        star_count = grade_str.count("*")
+        plus_count = grade_str.count("Ω")
+        s_count = grade_str.count("Σ")
+        op_count = grade_str.count("α")
+        star_count = grade_str.count("β")
 
         self.chance = max(0.01, self.chance - plus_count * 0.1)
         self.extra_damage += min(10, s_count * 5)
@@ -248,7 +273,6 @@ class Terminal:
                     COMMANDS = get_key_words()
                     raw = self.text  # texto completo atual (pode ter espaços)
 
-                    # 1) se há um único comando que começa com toda a linha -> completa a linha inteira
                     full_matches = [c for c in COMMANDS if c.startswith(raw)]
                     if len(full_matches) == 1:
                         self.text = full_matches[0] + " "
@@ -258,11 +282,8 @@ class Terminal:
                         if len(lcp) > len(raw):
                             self.text = lcp
                             continue
-                        # não completar mais: mostrar opções ao jogador
-                        #self.messages.append("Possíveis: " + ", ".join(full_matches[:20]))
                         continue
 
-                    # 2) tenta completar apenas a última palavra (ex: digitei "player -e" -> "-equip")
                     parts = raw.split()
                     if not parts:
                         continue
@@ -279,13 +300,7 @@ class Terminal:
                             parts[-1] = lcp
                             self.text = " ".join(parts)
                             continue
-                        # muitas opções: listar
-                        #self.messages.append("Possíveis para '{}': {}".format(last, ", ".join(last_matches[:20])))
                         continue
-
-                    # 3) se nenhum match, avisa (opcional)
-                    #self.messages.append("Nenhuma sugestão para: " + last)
-
                 elif event.unicode and event.key not in (pg.K_ESCAPE, pg.K_RETURN, pg.K_BACKSPACE, pg.K_TAB):
                     # adiciona caractere normal
                     self.text += event.unicode
@@ -311,7 +326,6 @@ class Terminal:
         if len(parts) == 4 and parts[0] == "player" and parts[1] == "-equip":
             hand = parts[2].lower()
             item = parts[3].lower()
-            print(item)
             item_type = item.split("-")[-1]
             if hand in ("right", "left") and item_type in game_items.equipable_items_hand:
                 return {"type": "equip", "hand": hand, "item": item}
@@ -323,7 +337,6 @@ class Terminal:
         
         if len(parts) == 3 and parts[0] == "player" and parts[1] == "-scan":
             target = parts[2].lower()
-            print(target)
             return {"type": "scan", "target": target}
 
 
@@ -402,6 +415,61 @@ def longest_common_prefix(strs):
                 if s[i] != ch:
                     return shortest[:i]
         return shortest
+
+def generate_item_keywords(player_inventory, dropped_items):
+    """
+    Gera lista de keywords para autocomplete a partir de:
+    - Inventário do jogador
+    - Itens dropados
+    Inclui prefixos de empresas e sufixos de grades (se existirem).
+    """
+
+    # empresas
+    companies = game_items.item_companies
+
+    # itens equipáveis
+    equip_items = game_items.equipable_items_hand
+
+    # itens consumíveis
+    usable = game_items.usable_items
+
+    # ---- Inventário do jogador ----
+    for full_name in player_inventory:
+        # separa item puro e possível prefixo
+        item_parts = full_name.split("-")
+        item_base = item_parts[-1]
+        company_prefix = item_parts[0] if item_parts[0] in companies else None
+
+        # só equipável
+        if item_base in equip_items:
+            if company_prefix:
+                keywords.append(f"{company_prefix}-{item_base}")
+            else:
+                keywords.append(item_base)
+        elif item_base in usable:
+            if company_prefix:
+                keywords.append(f"{company_prefix}-{item_base}")
+            else:
+                keywords.append(item_base)
+
+    # ---- Itens dropados ----
+    for _, _, drop_name in dropped_items:
+        item_parts = drop_name.split("-")
+        item_base = item_parts[-1]
+        company_prefix = item_parts[0] if item_parts[0] in companies else None
+
+        if item_base in equip_items:
+            if company_prefix:
+                keywords.append(f"{company_prefix}-{item_base}")
+            else:
+                keywords.append(item_base)
+        elif item_base in usable:
+            if company_prefix:
+                keywords.append(f"{company_prefix}-{item_base}")
+            else:
+                keywords.append(item_base)
+
+    return list(set(keywords))  # remove duplicados
     
 keywords = [
         "player -a", "player -h", "player -equip", "player -use", "player -scan",
@@ -468,21 +536,21 @@ def parse_weapon(weapon: str):
     return company, base, symbols
 
 def parse_weapon_grades(symbols: list):
-    chance_to_hit = 0
+    chance_to_hit = 0.01
     stun_chance = 0
     force_unequip = False
     extra_dmg = 0
     for sym in symbols:
-                        if sym == "+":
+                        if sym == "Ω":
                             chance_to_hit *= 0.9
                             extra_dmg += 20# 10% menos chance de errar por cada +
-                        elif sym == "s":
+                        elif sym == "Σ":
                             stun_chance += 0.2  # cada S dá 20% chance de stun
                             extra_dmg += 20
-                        elif sym == "op":
+                        elif sym == "α":
                             force_unequip = True
                             extra_dmg += 20
-                        elif sym =="*":
+                        elif sym =="β":
                             extra_dmg +=100
     return chance_to_hit, stun_chance, force_unequip, extra_dmg
     

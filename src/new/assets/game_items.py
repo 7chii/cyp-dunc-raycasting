@@ -15,9 +15,9 @@ usable_items_values = {
 #multiplicadores de valor para itens equipaveis/consumiveis/proteses
 item_companies = ("megacorp", "n3kst", "wyutani", "generic")
 item_companies_values= {
-    "megacorp":1.5,
-    "n3kst":2.0,
-    "wyutani":4,
+    "megacorp":2,
+    "n3kst":10,
+    "wyutani":7,
     "generic":1
 }
 #Adjacent processing unit

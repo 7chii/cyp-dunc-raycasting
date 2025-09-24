@@ -173,6 +173,73 @@ def draw_enemies_ascii(screen, player, enemies, grid_dict, width, height, font, 
         for cy in range(left_cx, right_cx + 1):
             for ry in range(top_row, bottom_row + 1):
                 _blit_char(screen, font, ch, color, cy, ry, CHAR_W, CHAR_H)
+                
+def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, font, see_through_walls=False):
+    """
+    Desenha os itens no chão como pequenos quadrados coloridos (ASCII).
+    dropped_items = [(x, y, item_name), ...]
+    """
+    CHAR_W, CHAR_H = font.size("A")
+    cols = width // CHAR_W
+    rows = height // CHAR_H
+    half_h = height // 2
+
+    # ordena por distância (mais longe primeiro, para sobreposição correta)
+    items_sorted = sorted(
+        dropped_items,
+        key=lambda d: (d[0] - player.x) ** 2 + (d[1] - player.y) ** 2,
+        reverse=True
+    )
+
+    for (ix, iy, item_name) in items_sorted:
+        rel_x = ix - player.x
+        rel_y = iy - player.y
+
+        # transforma para coords de câmera
+        inv_det = 1.0 / (player.plane.x * player.direction.y - player.direction.x * player.plane.y)
+        transform_x = inv_det * (player.direction.y * rel_x - player.direction.x * rel_y)
+        transform_y = inv_det * (-player.plane.y * rel_x + player.plane.x * rel_y)
+
+        if transform_y <= 0:
+            continue
+
+        item_dist = (rel_x**2 + rel_y**2) ** 0.5
+        if not see_through_walls:
+            ray_dir = constants.Point2(rel_x / item_dist, rel_y / item_dist)
+            wall_dist, _, _ = run_along_ray(player.xy, ray_dir, grid_dict)
+            if wall_dist < item_dist:
+                continue
+
+        # posição horizontal na tela
+        item_screen_x = int((width / 2) * (1 + transform_x / transform_y))
+
+        # tamanho pequeno, independente do item
+        scale = 0.2 / item_dist  # menor que inimigos
+        item_size_px = int(height * scale)
+        item_size_px = max(CHAR_H, min(item_size_px, CHAR_H * 2))  # mantém mínimo/limite
+
+         # converte para células
+        center_cx = max(0, min(cols - 1, item_screen_x // CHAR_W))
+
+        # posiciona próximo ao chão
+        base_line = int(height * 0.9)  # altura da base (90% da tela)
+        top_py = base_line - item_size_px
+        bottom_py = base_line
+
+        top_row = max(0, top_py // CHAR_H)
+        bottom_row = min(rows - 1, bottom_py // CHAR_H)
+
+
+        # caractere e cor do item
+        ch = _char_for_color(constants.ITEMS)
+        color = constants.ITEMS
+
+        # desenha quadradinho de caracteres
+        for cy in range(center_cx - 1, center_cx + 2):
+            if 0 <= cy < cols:
+                for ry in range(top_row, bottom_row + 1):
+                    _blit_char(screen, font, ch, color, cy, ry, CHAR_W, CHAR_H)
+
 
 
 # ---------- fim do bloco ASCII ----------
