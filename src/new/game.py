@@ -13,16 +13,17 @@ from utils import player_collides_enemy, find_free_position_with_exit
 level = 0
 def main() -> None:
     player = game_objects.Player((3, 10))
-    
     def generate_level():
         global level
         GRID = grid_starter.start_grid()
-        level += 1
+        #level += 1
+        level = 50
         grid_dict = {}
         for x, row in enumerate(GRID):
             for y, element in enumerate(row):
                 grid_dict[(x, y)] = element
-        enemies = dinamic.generate_enemies_distributed(level + 1, grid_dict)
+        enemies = dinamic.generate_enemies_distributed(level +1, grid_dict, level)
+        player.x, player.y = terminal_commands.fix_char_position(grid_dict, player.xy)
         return GRID, grid_dict, enemies, level
     
     #grid = game_objects.Grid
@@ -85,14 +86,13 @@ def main() -> None:
 
 
         rendering.clear_screen(screen)
-        rendering.draw_floor(screen, width, height)
-        rendering.draw_ceiling(screen, width, height)
-        
-        
-        rendering.cast_rays(screen, player.xy, player.direction, player.plane, grid, width, height)
-        rendering.draw_enemies(screen, player, enemies, grid, width, height, see_through)
-        #ascii_frame = rendering.surface_to_ascii(screen, font)
-        #screen.blit(ascii_frame, (0, 0))
+        rendering.draw_floor_and_ceiling_ascii(screen, font, width, height)
+
+    
+        rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, font)
+
+    
+        rendering.draw_enemies_ascii(screen, player, enemies, grid, width, height, font, see_through)
         rendering.draw_level_number(screen, font, level, width-100)
         
         rendering.draw_fps(screen, font, clock, half_w)

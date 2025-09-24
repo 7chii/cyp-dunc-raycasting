@@ -23,14 +23,16 @@ item_companies_values= {
 #Adjacent processing unit
 equipable_prosthetics = ("arm", "leg", "eye", "skin", "APU")
 
-
+boss_names = ("reeve", "patrick", "tristram", "preston", "adam", "ed")
+boss_surnames = ("bateman", "gildenberg", "smith", "hayes", "smasher")
+#grades = ("+", "s", "op", "*")
+grades = ("Ω", "Σ", "α", "β")
 
 enemy_seniority = ("junior", "midlevel", "senior")
 enemy_position = ("hr_defense", "medical_defense", "corporate_defense")
 enemy_job = ("sergeant", "captain")
 
 #multiplicador do multiplicador de marcas
-item_grades = ("+", "S", "-", "*")
 
 status_effects = ("Paralysis", "Angry", "Sad", "Anxious")
 

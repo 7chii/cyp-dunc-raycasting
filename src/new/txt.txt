@@ -3,18 +3,13 @@
 -> add logica if(encostando em porta): mudar nivel ok/2 (subida automatica de nivel)
 
 -> add menu inicial
--> add salvamento (salvar numero do nivel e estado do personagem(itens, equipados, instalados etc))
-
--> geracao dinamica de bosses (com melhoria conforme nivel)
--> add boss
--> spawn de boss a cada multiplo de 5 ate 50
-
-->melhoria de inimigos dinamicamente (mais fortes quanto mais niveis)
+-> add salvamento (salvar numero do nivel e estado do personagem(itens, equipados, instalados etc)) started com json
+-> melhoria de inimigos dinamicamente (mais fortes quanto mais niveis) ok/2
 
 -> add mais itens
 
 
-->add status effects
+->add status effects ok/2
 ->add barra de scroll (com setinha)
 -> comando help
 
@@ -22,7 +17,25 @@
 -> add lista de proteses instaladas
 -> add comando pra instalar proteses
 
+->testar efeitos de arma
+-> testar geracao de bosses ok/2
+    ->aumentar dados dos bosses ok/2
+-> add drop de itens usaveis-> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
+-> add boss ok
 
+-> fix drop de itens (atualmente apenas uma lista com [0], [1] o x e y, e [2] o item)
+-> visualizar itens no mapa
+-> logica de armas (grades/empresas)
+
+-> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
+
+-> autocomplete ok/2 (novas roots :itens)
+
+-> add boss ok
+-> spawn de boss a cada multiplo de 5 ate 50 ok 
+-> boss de cor diferente ok 
+->testar visual spare em ascii ok
+->alterar grades de inimigos ok
 -> add niveis ok
 -> geracao dinamica de inimigos ok
 ->add miss attack ok
@@ -32,5 +45,4 @@
 ->correr (andar mais rapido) ok
 -> add itens usaveis ok
 -> nome inimigos ok
--> autocomplete ok
 -> geracao dinamica de niveis ok

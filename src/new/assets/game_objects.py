@@ -14,14 +14,16 @@ class Player:
         # maos
         self.right_hand = None
         self.left_hand = None
+        self.is_stunned = False
+        self.extra_damage = 1
         #chance de miss
         self.chance = 0.1
 
         # inventario do jogador
-        self.inventory = ["chainsaw", "ecig", "healthjuice", "parteehard"]
+        self.inventory = ["generic-chainsaw", "ecig", "healthjuice", "parteehard"]
 
         # vida do jogador
-        self.hp = 20
+        self.hp = 10000
         self.damage_buff = 0   # usado se consumir algo tipo ParteeHard
         self.buff_timer = 0
 
@@ -56,16 +58,30 @@ class Player:
             item = None
             if hand == "right":
                 item = self.right_hand
+                if item :
+                    company, base, symbols = parse_weapon(item)
+                    
             elif hand == "left":
                 item = self.left_hand
+                if item :
+                    company, base, symbols = parse_weapon(item)
 
-            base = 1
-            if item and item in items:
-                base = items[item]
+            if not item:
+                return self.extra_damage  # caso não tenha arma
 
-            # aplica buff de dano somente se o timer > 0
-            buff = int(self.damage_buff) if self.buff_timer > 0 else 0
-            return base + buff
+          # nome da arma
+
+            # pega dano base
+            dmg = game_items.equipable_items_hand_dmg.get(base, 1)
+
+            # aplica extra damage (de grades ou inimigo)
+            chance_to_hit, stun_chance, force_unequip, extra_dmg = parse_weapon_grades(symbols)
+            dmg += self.extra_damage + extra_dmg
+            
+            # aplica multiplicador da marca
+            dmg *= game_items.item_companies_values.get(company, 1)
+            
+            return int(dmg), chance_to_hit, stun_chance, force_unequip
 
     def update_buffs(self, dt: float) -> None:
         ended = False
@@ -127,31 +143,70 @@ def is_walkable(x, y):
 class Enemy:
     def __init__(self, xy,chance, name="enemy", hp=10, weapon="knife") -> None:
         self.x, self.y = xy
-        self.color = (255, 0, 0)  
+        self.color = constants.ENEMY
         self.size = 0.3
         self.name = name
         self.hp = hp
         self.weapon = weapon
+        self.is_stunned = False
+        self.extra_damage = self.hp/10
         self.chance = chance
     @property
     def xy(self):
         return constants.Point2(self.x, self.y)
 
     def get_damage(self) -> int:
-        dmg = game_items.equipable_items_hand_dmg.get(self.weapon, 1)
-        parts = self.name.strip("-")
-        if "corporate_defense" in parts:
-            dmg += 2
-        if "senior" in parts:
-            dmg += 1
-        if "captain" in parts:
-            dmg += 2
-        return dmg
+        if not self.weapon:
+            return self.extra_damage  # caso não tenha arma
+
+        # separa o nome da arma em partes
+        company, base, symbols = parse_weapon(self.weapon)  # nome da arma
+
+        # pega dano base
+        dmg = game_items.equipable_items_hand_dmg.get(base, 1)
+
+        # aplica extra damage (de grades ou inimigo)
+        
+        if (len(symbols)>0):
+                chance_to_hit, stun_chance, force_unequip, extra_dmg_weapon = parse_weapon_grades(symbols)
+        else:
+            extra_dmg_weapon = 0
+
+        dmg += self.extra_damage + extra_dmg_weapon
+        
+        # aplica multiplicador da marca
+        dmg *= game_items.item_companies_values.get(company, 1)
+        
+        return int(dmg), chance_to_hit, stun_chance, force_unequip
+
+    def parse_grades(self):
+        self.stun_chance = 0
+        self.force_unequip = False
+
+        # separa a parte dos grades (após o último "-")
+        if "-" in self.name:
+            grade_part = self.name.split("-")[-4:]  # pegar os últimos 4 segmentos que são grades
+            grade_str = "-".join(grade_part)
+        else:
+            grade_str = ""
+
+        plus_count = grade_str.count("+")
+        s_count = grade_str.count("S")
+        op_count = grade_str.count("OP")
+        star_count = grade_str.count("*")
+
+        self.chance = max(0.01, self.chance - plus_count * 0.1)
+        self.extra_damage += min(10, s_count * 5)
+        self.force_unequip = op_count > 0
+
+        if star_count > 0:
+            self.hp = int(self.hp * (30 * star_count))
+
 
 class SparedEnemy(Enemy):
     def __init__(self, xy, name="spared_enemy", dropped_weapon=None, chance=0):
         super().__init__(xy, name=name, hp=1, weapon=dropped_weapon, chance=0)
-        self.color = (0, 0, 255)  # azul
+        self.color = constants.SPARED
         self.weapon = None  # n possui arma
         self.size = 0.3
 
@@ -256,7 +311,9 @@ class Terminal:
         if len(parts) == 4 and parts[0] == "player" and parts[1] == "-equip":
             hand = parts[2].lower()
             item = parts[3].lower()
-            if hand in ("right", "left") and item in game_items.equipable_items_hand:
+            print(item)
+            item_type = item.split("-")[-1]
+            if hand in ("right", "left") and item_type in game_items.equipable_items_hand:
                 return {"type": "equip", "hand": hand, "item": item}
             return None
         
@@ -266,6 +323,7 @@ class Terminal:
         
         if len(parts) == 3 and parts[0] == "player" and parts[1] == "-scan":
             target = parts[2].lower()
+            print(target)
             return {"type": "scan", "target": target}
 
 
@@ -394,3 +452,39 @@ def wrap_text(text, font, max_width):
         if current_line:
             lines.append(current_line)
         return lines
+
+def parse_weapon(weapon: str):
+    """
+    Separa arma em: marca, item base e símbolos de grade.
+    Ex: 'wyutani-chainsaw-s-op' -> ('wyutani', 'chainsaw', ['s','op'])
+    """
+    parts = weapon.split("-")
+    if len(parts) < 2:
+        return weapon, weapon, []
+
+    company = parts[0]
+    base = parts[1]
+    symbols = parts[2:] if len(parts) > 2 else []
+    return company, base, symbols
+
+def parse_weapon_grades(symbols: list):
+    chance_to_hit = 0
+    stun_chance = 0
+    force_unequip = False
+    extra_dmg = 0
+    for sym in symbols:
+                        if sym == "+":
+                            chance_to_hit *= 0.9
+                            extra_dmg += 20# 10% menos chance de errar por cada +
+                        elif sym == "s":
+                            stun_chance += 0.2  # cada S dá 20% chance de stun
+                            extra_dmg += 20
+                        elif sym == "op":
+                            force_unequip = True
+                            extra_dmg += 20
+                        elif sym =="*":
+                            extra_dmg +=100
+    return chance_to_hit, stun_chance, force_unequip, extra_dmg
+    
+    
+    

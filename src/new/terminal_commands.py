@@ -1,5 +1,6 @@
 
 import assets.game_objects as game_objects
+import assets.game_items as game_items
 import minigames 
 import pygame as pg
 
@@ -8,15 +9,6 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
     lida com os comandos do terminal (apertar TAB ou combate) e retorna
     os estados atualizados de black_screen e collided_enemy
     """
-    def find_free_position_with_exit(grid_dict, player_pos):
-        max_x = max(x for x, _ in grid_dict.keys()) + 1
-        max_y = max(y for _, y in grid_dict.keys()) + 1
-        px, py = int(player_pos.x), int(player_pos.y)
-        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
-            nx, ny = px + dx, py + dy
-            if 0 <= nx < max_x and 0 <= ny < max_y and grid_dict.get((nx, ny), 1) == 0:
-                return nx + 0.5, ny + 0.5
-        return px + 0.5, py + 0.5
 
     def terminal_loading(terminal, screen, label="loading", steps=6, delay=100):
         """
@@ -43,45 +35,94 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
         nonlocal collided_enemy
         def enemy_turn():
             if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
-                terminal_loading(terminal, screen, label="loading action")
-                dano = collided_enemy.get_damage()
-                if random.random() < collided_enemy.chance:
+                player.is_stunned = False  # reset stun antes do ataque
+                if(collided_enemy.is_stunned):
                     terminal.messages.append(
-                    f"{collided_enemy.name} tried to attack you with {collided_enemy.weapon}! Dealing no damage! They missed."
-                )
-                else:
-                    player.hp -= dano
-                    terminal.messages.append(
-                        f"{collided_enemy.name} tried to attack you with {collided_enemy.weapon}! (-{dano} HP). Your HP: {player.hp}"
+                        f"{collided_enemy.name} is stunned."
                     )
-                if player.hp <= 0:
-                    terminal.messages.append("You died! Game Over.")
-                    import pygame as pg
-                    pg.quit()
-                    exit()
+                    collided_enemy.is_stunned = False
+                else:
+                    terminal_loading(terminal, screen, label="loading action")
+
+                    import random
+                    # pega dano base da arma
+                    dmg, chance_to_hit, stun_chance, force_unequip  = collided_enemy.get_damage()
+
+                    # verifica se errou
+                    if random.random() < chance_to_hit:
+                        terminal.messages.append(
+                            f"{collided_enemy.name} tried to attack you with {collided_enemy.weapon}! They missed."
+                        )
+                    else:
+                        # aplica stun
+                        if random.random() < stun_chance:
+                            terminal.messages.append(f"{collided_enemy.name} stunned you! You lose your next turn!")
+                            player.is_stunned = True
+
+                        # aplica force unequip
+                        if force_unequip:
+                            if player.right_hand or player.left_hand:
+                                terminal.messages.append(f"{collided_enemy.name}'s attack threw you to the ground!")
+                                player.right_hand = None
+                                player.left_hand = None
+
+                        # aplica dano
+                        player.hp -= dmg
+                        terminal.messages.append(
+                            f"{collided_enemy.name} attacked you with {collided_enemy.weapon}! (-{dano} HP). Your HP: {player.hp}"
+                        )
+
+                    if player.hp <= 0:
+                        terminal.messages.append("You died! Game Over.")
+                        import pygame as pg
+                        pg.quit()
+                        exit()
+
 
         if black_screen and collided_enemy:
+            if player.is_stunned:
+                enemy_turn()
 
             # comandos durante combate
             if command["type"] == "attack":
-                    if collided_enemy and command["target"] == collided_enemy.name:
-                        terminal_loading(terminal, screen, label="loading attack")
-                        dano = player.get_damage(command["hand"])
-                        if random.random() < player.chance:
-                            #collided_enemy.hp = max(1, collided_enemy.hp - dano)
-                            terminal.messages.append(
-                                f"{collided_enemy.name} received 0 dmg from {command['hand']} hand! You missed! enemy HP: {collided_enemy.hp}"
-                            )
-                        else:
-                            collided_enemy.hp = max(1, collided_enemy.hp - dano)
-                            terminal.messages.append(
-                                f"{collided_enemy.name} received {dano} dmg from {command['hand']} hand! enemy HP: {collided_enemy.hp}"
-                            )
-                        enemy_turn()
-                    else:
+                if collided_enemy and command["target"] == collided_enemy.name:
+                    terminal_loading(terminal, screen, label="loading attack")
+                    dmg, chance_to_hit, stun_chance, force_unequip  = player.get_damage(command["hand"])
+
+                    # verifica se errou
+                    if random.random() < chance_to_hit + player.chance:
                         terminal.messages.append(
-                            f"ERROR: You can only attack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'nenhum'})!"
+                            f"{collided_enemy.name} received 0 dmg from {command['hand']} hand! You missed! enemy HP: {collided_enemy.hp}"
                         )
+                    else:
+                        # aplica stun
+                        if random.random() < stun_chance:
+                            terminal.messages.append(f"Your attack left {collided_enemy.name} stunned!")
+                            collided_enemy.is_stunned = True
+
+                        # aplica force unequip
+                        if force_unequip:
+                            if collided_enemy.weapon:
+                                terminal.messages.append(f"You threw {collided_enemy.name} weapon {collided_enemy.weapon} far away!")
+                                collided_enemy.weapon = None
+
+                        else:
+                            collided_enemy.hp = max(1, collided_enemy.hp - dmg)
+                            if(player.right_hand):
+                                weapon = player.right_hand
+                            if(player.left_hand):
+                                weapon = player.left_hand
+                            else:
+                                weapon = "fists"
+                            terminal.messages.append(
+                                f"{collided_enemy.name} received {dmg} dmg from {command['hand']} with {weapon}! enemy HP: {collided_enemy.hp}"
+                            )
+                    enemy_turn()  # turno do inimigo acontece normalmente
+                else:
+                    terminal.messages.append(
+                        f"ERROR: You can only attack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'nenhum'})!"
+                    )
+
             if command["type"] == "hack":
                 if collided_enemy and collided_enemy.name == command["target"]:
                     terminal_loading(terminal, screen, label="loading hack")
@@ -102,6 +143,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         f"ERROR: You can only hack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                     )
             if command["type"] == "scan":
+                print(collided_enemy.name)
                 if collided_enemy and collided_enemy.name == command["target"]:
                     terminal_loading(terminal, screen, label="loading scan")
                     terminal.messages.append(
@@ -142,14 +184,20 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 msg = player.use_item(command["item"])
                 terminal.messages.append(msg)
             elif command["type"] == "equip":
-                if command["item"] not in player.inventory:
-                    terminal.messages.append(f"You don’t have {command['item']} in your inventory!")
+                item_full = command["item"]  # "generic-chainsaw"
+                item_type = item_full.split("-")[-1]  # pega só "chainsaw"
+                
+                if item_full not in player.inventory:
+                    terminal.messages.append(f"You don’t have {item_full} in your inventory!")
+                elif item_type not in game_items.equipable_items_hand:
+                    terminal.messages.append(f"{item_type} cannot be equipped!")
                 else:
                     if command["hand"] == "right":
-                        player.right_hand = command["item"]
+                        player.right_hand = item_full
                     elif command["hand"] == "left":
-                        player.left_hand = command["item"]
-                    terminal.messages.append(f"You equipped {command['item']} on your {command['hand']} hand.")
+                        player.left_hand = item_full
+                    terminal.messages.append(f"You equipped {item_full} on your {command['hand']} hand.")
+
                 enemy_turn()
 
             elif command["type"] == "remove":
@@ -269,14 +317,19 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 left = player.left_hand if player.left_hand else "empty"
                 terminal.messages.append(f"Right hand: {right}, Left hand: {left}")
             elif command["type"] == "equip":
-                if command["item"] not in player.inventory:
-                    terminal.messages.append(f"You don’t have {command['item']} in your inventory!")
+                item_full = command["item"]  # "generic-chainsaw"
+                item_type = item_full.split("-")[-1]  # pega só "chainsaw"
+                
+                if item_full not in player.inventory:
+                    terminal.messages.append(f"You don’t have {item_full} in your inventory!")
+                elif item_type not in game_items.equipable_items_hand:
+                    terminal.messages.append(f"{item_type} cannot be equipped!")
                 else:
                     if command["hand"] == "right":
-                        player.right_hand = command["item"]
+                        player.right_hand = item_full
                     elif command["hand"] == "left":
-                        player.left_hand = command["item"]
-                    terminal.messages.append(f"You equipped {command['item']} on your {command['hand']} hand.")
+                        player.left_hand = item_full
+                    terminal.messages.append(f"You equipped {item_full} on your {command['hand']} hand.")
 
             elif command["type"] == "use":
                 msg = player.use_item(command["item"])
@@ -305,3 +358,41 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
     terminal.draw(screen)
     pg.display.flip()
     return black_screen, collided_enemy
+
+def find_free_position_with_exit(grid_dict, player_pos):
+        max_x = max(x for x, _ in grid_dict.keys()) + 1
+        max_y = max(y for _, y in grid_dict.keys()) + 1
+        px, py = int(player_pos.x), int(player_pos.y)
+        for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+            nx, ny = px + dx, py + dy
+            if 0 <= nx < max_x and 0 <= ny < max_y and grid_dict.get((nx, ny), 1) == 0:
+                return nx + 0.5, ny + 0.5
+        return px + 0.5, py + 0.5
+
+def fix_char_position(grid_dict, player_pos):
+    from collections import deque
+    max_x = max(x for x, _ in grid_dict.keys()) + 1
+    max_y = max(y for _, y in grid_dict.keys()) + 1
+    px, py = int(player_pos.x), int(player_pos.y)
+
+    visited = set()
+    queue = deque([(px, py)])
+
+    while queue:
+        x, y = queue.popleft()
+        if (x, y) in visited:
+            continue
+        visited.add((x, y))
+
+        # achou espaço livre
+        if 0 <= x < max_x and 0 <= y < max_y and grid_dict.get((x, y), 1) == 0:
+            return x + 0.5, y + 0.5
+
+        # expande vizinhos
+        for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+            nx, ny = x + dx, y + dy
+            if (nx, ny) not in visited and 0 <= nx < max_x and 0 <= ny < max_y:
+                queue.append((nx, ny))
+
+    # fallback: retorna a pos original se não achar nada
+    return px + 0.5, py + 0.5

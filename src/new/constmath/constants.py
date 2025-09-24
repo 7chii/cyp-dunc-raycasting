@@ -2,15 +2,20 @@ from collections import namedtuple
 
 Point2 = namedtuple("Point2", "x y")
 
-SIZE = (600, 600)
+SIZE = (700, 700)
 FPS = (60)
 
 STEP = 1
-WALL = (0, 0, 255)
+WALL = (255, 255, 255)
 FLOOR = (25, 25, 100)
-CEILING = (25, 25, 25)   
+CEILING = (25, 25, 25)
 
-ASCII_CHARS = " .:-=+*#%@" 
+SPARED = (0, 0, 255)
+ENEMY = (255, 0, 0)
+BOSS = (0, 255, 0)   
 
-STEPSIZE = 0.035            
+ASCII_CHARS = " .'`^\",:;Il!i~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$"
+
+
+STEPSIZE = 0.035          
 DEG_STEP = 1
