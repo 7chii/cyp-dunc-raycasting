@@ -6,7 +6,7 @@ import dinamic.item_dinamic as item_dinamic
 import random
 from collections import deque
 
-def generate_random_grid(width: int, height: int, wall_chance: float = 0.2) -> list[list[int]]:
+def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubicle_chance: float = 0.05) -> list[list[int]]:
     """
     Gera uma grid com paredes aleatórias, garantindo que todos os espaços vazios estejam conectados.
     0 = espaço livre
@@ -18,9 +18,13 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2) -> l
         row = []
         for x in range(width):
             if x == 0 or x == width - 1 or y == 0 or y == height - 1:
-                row.append(1)  # parede nas bordas
+                row.append(1)  # borda sempre parede
             else:
-                row.append(1 if random.random() < wall_chance else 0)
+                if random.random() < wall_chance:
+                    row.append(1)
+                else:
+                    # 5% de chance de virar cubículo, senão espaço livre
+                    row.append(2 if random.random() < cubicle_chance else 0)
         grid.append(row)
 
     # Passo 2: função para achar componentes conectados
@@ -72,8 +76,34 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2) -> l
 
         # atualiza a região principal
         main_region |= region
-
     return grid
+
+def add_exit_door(grid_dict):
+    """
+    Escolhe uma parede externa aleatória e adiciona uma porta (valor 3) no dict da grid.
+    """
+    xs = [x for x, y in grid_dict.keys()]
+    ys = [y for x, y in grid_dict.keys()]
+    min_x, max_x = min(xs), max(xs)
+    min_y, max_y = min(ys), max(ys)
+
+    side = random.choice([0,1,2,3])  # 0=top,1=bottom,2=left,3=right
+
+    if side == 0:  # topo
+        x = random.choice([xi for xi in range(min_x+1, max_x) if grid_dict.get((xi, min_y), 0) == 1])
+        y = min_y
+    elif side == 1:  # base
+        x = random.choice([xi for xi in range(min_x+1, max_x) if grid_dict.get((xi, max_y), 0) == 1])
+        y = max_y
+    elif side == 2:  # esquerda
+        y = random.choice([yi for yi in range(min_y+1, max_y) if grid_dict.get((min_x, yi), 0) == 1])
+        x = min_x
+    else:  # direita
+        y = random.choice([yi for yi in range(min_y+1, max_y) if grid_dict.get((max_x, yi), 0) == 1])
+        x = max_x
+
+    grid_dict[(x, y)] = 3  # define porta
+    return x, y
 
 
 def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):

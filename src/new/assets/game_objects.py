@@ -16,6 +16,7 @@ class Player:
         self.left_hand = None
         self.is_stunned = False
         self.extra_damage = 1
+        self.prostheses = []
         #chance de miss
         self.chance = 0.1
 
@@ -141,21 +142,33 @@ class Player:
         )
         self.plane = constants.Point2(*functions.rotate_by_step(self.plane, rads))
 
-    def handle_event(self, events, pressed, enemies=None) -> None:
+    def handle_event(self, events, pressed, enemies=None, blocked=False) -> None:
+        
+        if blocked:
+            return  # não processa nada enquanto bloqueado
+
+        # rotação
         if pressed[pg.K_LEFT]:
             self.rotate(-constants.DEG_STEP)
         if pressed[pg.K_RIGHT]:
             self.rotate(constants.DEG_STEP)
-        if pressed[pg.K_DOWN]:
-            if pressed[pg.K_LSHIFT]:
-                self.run(-1, -1, enemies)
-            else:
-                self.move(-1, -1, enemies)
+
+        # movimentação para frente/atrás
+        move_dir = 0
+        run_dir = 0
+
         if pressed[pg.K_UP]:
+            move_dir += 1
+            run_dir += 1
+        if pressed[pg.K_DOWN]:
+            move_dir -= 1
+            run_dir -= 1
+
+        if move_dir != 0:
             if pressed[pg.K_LSHIFT]:
-                self.run(1, 1, enemies)
+                self.run(run_dir, move_dir, enemies)
             else:
-                self.move(1, 1, enemies)
+                self.move(move_dir, move_dir, enemies)
 
 def is_walkable(x, y):
     if 0 <= x < len(grid.GRID) and 0 <= y < len(grid.GRID[0]):
@@ -247,12 +260,18 @@ class Terminal:
         self.height = height
         self.active = True
         self.messages = []  # mensagens postadas
+        self.scroll_offset = 0
         
     # --- helpers (cole acima do Terminal ou no topo do arquivo) ---
 
     def handle_event(self, events, command_callback=None, error_callback=None):
         for event in events:
             if event.type == pg.KEYDOWN:
+                if event.key == pg.K_UP:
+                    self.scroll_offset = min(self.scroll_offset + 1, len(self.messages))
+                elif event.key == pg.K_DOWN:
+                    self.scroll_offset = max(self.scroll_offset - 1, 0)
+                    
                 if event.key == pg.K_RETURN:
                     if self.text.strip():
                         # Sempre salva o que o jogador digitou
@@ -374,37 +393,56 @@ class Terminal:
     def draw(self, screen):
         line_height = self.font.get_height() + 5
         margin_top = 20
-        margin_bottom = 10
+        margin_bottom = 20
+        reserved_lines = 3  # linhas reservadas para entrada
         usable_height = self.height - margin_top - margin_bottom
         total_lines = usable_height // line_height
 
-        msgs_to_show = []
+        # processa todas as linhas de mensagens com wrap
+        all_msg_lines = []
         for msg in self.messages:
             wrapped_lines = wrap_text(msg, self.font, self.width)
-            msgs_to_show.extend(wrapped_lines)
-        msgs_to_show = msgs_to_show[-total_lines+2:]
+            all_msg_lines.extend(wrapped_lines)
 
+        # espaço máximo para mensagens
+        message_lines_available = max(0, total_lines - reserved_lines)
+
+        # aplica scroll_offset: pega as últimas linhas visíveis, descontando scroll
+        start_index = max(0, len(all_msg_lines) - message_lines_available - self.scroll_offset)
+        end_index = start_index + message_lines_available
+        msgs_to_show = all_msg_lines[start_index:end_index]
+
+        # desenha mensagens
         y = margin_top
         for msg in msgs_to_show:
             rendered = self.font.render(msg, True, (0, 255, 0))
             screen.blit(rendered, (20, y))
             y += line_height
+
+        # processa entrada
         edit_lines = wrap_text(self.text, self.font, self.width)
+        edit_lines = edit_lines[-reserved_lines:]  # máximo de linhas reservadas
 
-        edit_lines = edit_lines[-(total_lines - len(msgs_to_show)):]  
+        # posição inicial da entrada: logo após mensagens
+        edit_start_y = y
+        max_edit_y = self.height - margin_bottom - line_height
+        edit_start_y = min(edit_start_y, max_edit_y - (len(edit_lines) - 1) * line_height)
 
+        # desenha entrada
         for i, line in enumerate(edit_lines):
-            edit_y = min(y, self.height - margin_bottom - (len(edit_lines) - i) * line_height)
+            line_y = edit_start_y + i * line_height
             rendered = self.font.render(line, True, (0, 255, 0))
-            screen.blit(rendered, (20, edit_y))
-            y = edit_y + line_height
+            screen.blit(rendered, (20, line_y))
 
+        # cursor piscante
         if edit_lines:
             last_line = edit_lines[-1]
             cursor_x = 20 + self.font.size(last_line)[0]
-            cursor_y = edit_y
+            cursor_y = edit_start_y + (len(edit_lines) - 1) * line_height
             cursor = self.font.render("_", True, (0, 255, 0))
             screen.blit(cursor, (cursor_x, cursor_y))
+
+
 
 def longest_common_prefix(strs):
         if not strs:
@@ -553,6 +591,4 @@ def parse_weapon_grades(symbols: list):
                         elif sym =="β":
                             extra_dmg +=100
     return chance_to_hit, stun_chance, force_unequip, extra_dmg
-    
-    
     

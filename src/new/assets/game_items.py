@@ -1,3 +1,4 @@
+import constmath.constants as constants
 equipable_items_hand = ("knife", "hammer", "chainsaw")
 equipable_items_hand_dmg = {
             "knife": 3,
@@ -22,6 +23,13 @@ item_companies_values= {
 }
 #Adjacent processing unit
 equipable_prosthetics = ("arm", "leg", "eye", "skin", "APU")
+equipable_prosthetics_data = {
+    "arm":{"nt":1}, #mais um turno para o jogador a cada braco instalado
+    "leg":{"sp":0.02}, #aumento base de velocidade
+    "eye":{"sc":1}, #define quais objetos sao visiveis no scan, 1 -> armas, 2-> armas e proteses, 3->armas e proteses + info de grades
+    "skin":{"df":0.3}, #30% de bloqueio de dano base
+    "APU":{"hk":0.2} #20% diminuicao no tempo de hacks base
+}
 
 boss_names = ("reeve", "patrick", "tristram", "preston", "adam", "ed")
 boss_surnames = ("bateman", "gildenberg", "smith", "hayes", "smasher")

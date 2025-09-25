@@ -12,13 +12,18 @@ def handle_events(blocked, tab_pressed, running, player, enemies, see_through):
                 running = False
             elif event.key == pg.K_LCTRL:
                 tab_pressed = not tab_pressed
-                blocked = not blocked
+                # não inverte blocked aqui, apenas reflete o terminal aberto
+                blocked = tab_pressed
             elif event.key == pg.K_v:
                 see_through = True
-        if event.type == pg.KEYUP:
+        elif event.type == pg.KEYUP:
             if event.key == pg.K_v:
                 see_through = False
 
     if not blocked:
-        player.handle_event(events, pressed, enemies)
-    return running, events, tab_pressed, see_through
+        player.handle_event(events, pressed, enemies, blocked=False)
+    else:
+        player.handle_event([], [False]*len(pg.key.get_pressed()), enemies, blocked=True)
+
+
+    return running, events, tab_pressed, see_through, blocked

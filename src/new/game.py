@@ -16,8 +16,8 @@ def main() -> None:
     def generate_level():
         global level
         GRID = grid_starter.start_grid()
-        #level += 1
-        level = 49
+        level += 1
+        #level = 49
         grid_dict = {}
         for x, row in enumerate(GRID):
             for y, element in enumerate(row):
@@ -37,18 +37,20 @@ def main() -> None:
     terminal = game_objects.Terminal(font, width, height)
     half_w, half_h = width // 2, height // 2
     screen = pg.display.set_mode((width, height))
+    background_surface = rendering.pre_render_background(font, width, height)
 
     black_screen = False
     collided_enemy = None
     tab_pressed = False
     see_through = False
+    exit_pos = None
 
     running = True
     while running:
         dt = clock.tick(constants.FPS)/1000.0
         if player.update_buffs(dt):
             terminal.messages.append("WARN: buff ended")
-        running, events, tab_pressed, see_through= handle_events(black_screen, tab_pressed, running, player, enemies, see_through)
+        running, events, tab_pressed, see_through, blocked= handle_events(black_screen, tab_pressed, running, player, enemies, see_through)
         if not running:
             break
         
@@ -77,25 +79,36 @@ def main() -> None:
             continue
         all_spared = allspared(enemies)
         if not enemies or all_spared:
-            if "you have cleared this level!" not in terminal.messages:
-                terminal.messages.append("you have cleared this level!")
-            GRID, grid, enemies, level = generate_level()
-            dropped_items = []
-            player.x, player.y = 3, 10
+            if(exit_pos == None):
+                exit_pos = dinamic.add_exit_door(grid)
+            px, py = int(player.x), int(player.y)
+            ex, ey = exit_pos
+            if "you have cleared this level! find the stairs" not in terminal.messages:
+                terminal.messages.append("you have cleared this level! find the stairs")
+            # Supondo que `exit_pos = (x, y)` retornado de add_exit_door(grid)
+
+            # verifica se o jogador encostou na porta
+            if abs(px - ex) + abs(py - ey) == 1:
+                # carrega próximo nível
+                GRID, grid, enemies, level = generate_level()
+                dropped_items = []
+                player.x, player.y = 3, 10
             
 
-
-        rendering.clear_screen(screen)
-        rendering.draw_floor_and_ceiling_ascii(screen, font, width, height)
-
-    
-        rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, font)
-
-        rendering.draw_items_ascii(screen, player, dropped_items, grid, width, height, font)
-        rendering.draw_enemies_ascii(screen, player, enemies, grid, width, height, font, see_through)
-        rendering.draw_level_number(screen, font, level, width-100)
         
+        rendering.clear_screen(screen)
+        rendering.draw_floor_and_ceiling_ascii(screen, background_surface)
+
+        # raycasting e objetos
+        step = 1
+        rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, font, step, see_through)
+        rendering.draw_items_ascii(screen, player, dropped_items, grid, width, height, font, see_through)
+        rendering.draw_enemies_ascii(screen, player, enemies, grid, width, height, font, see_through)
+
+        # HUD
+        rendering.draw_level_number(screen, font, level, width-100)
         rendering.draw_fps(screen, font, clock, half_w)
+
         pg.display.flip()
 
 def allspared(enemies):
