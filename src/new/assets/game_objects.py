@@ -385,7 +385,7 @@ class Terminal:
             return {"type": "runaway"}
 
         # combat exit
-        if text.strip() == "terminal exit":
+        if text.strip() == "combat exit":
             return {"type": "exit"}
 
         return None
