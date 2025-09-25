@@ -3,6 +3,11 @@
 -> add escolha de save
 -> melhoria de inimigos dinamicamente (mais fortes quanto mais niveis) ok/2
 
+-> add musica
+-> add "now playing:" e nome da musica, caso musica turnoff "there is no sound."
+-> opcao de turnoff musica ou audio-effects
+-> add audio effects
+
 -> add mais itens
 -> add status effects ok/2
 -> comando help
