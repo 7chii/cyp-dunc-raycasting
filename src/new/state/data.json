@@ -1,7 +1,7 @@
 {
     "slot1": {
         "playerData": {
-            "right_hand": "megacorp-chainsaw",
+            "right_hand": null,
             "left_hand": null,
             "is_stunned": false,
             "extra_damage": 1000,
@@ -18,12 +18,12 @@
         "itemsData": {
             "prostheses": [],
             "inventory": {
-                "megacorp-chainsaw": 1,
+                "megacorp-chainsaw": 2,
                 "generic-knife-\u03a3": 1,
                 "generic-ecig": 5,
                 "generic-healthjuice": 2,
                 "generic-parteehard": 1,
-                "generic-arm": 1,
+                "generic-arm": 3,
                 "n3kst-chainsaw-\u03b1-\u03b1": 1,
                 "n3kst-parteehard": 1
             }

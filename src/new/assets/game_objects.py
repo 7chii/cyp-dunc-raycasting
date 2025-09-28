@@ -74,7 +74,7 @@ class Player:
         cuttable_items = game_items.cuttable_items
 
         for item_full in self.inventory:
-        # pega o item base (remove prefixo de empresa e sufixo de grades)
+            # pega o item base (remove prefixo de empresa e sufixo de grades)
             item_parts = item_full.split("-")
             item_base = item_parts[1] if item_parts[0] in game_items.item_companies else item_parts[0]
             if item_base in cuttable_items:
@@ -83,15 +83,15 @@ class Player:
         if not has_cut_item:
             return "There is nothing to cut with."
 
-        # checa se instalada
-        if prost_name in self.prostheses:
-            return f"{prost_name} is already installed!"
-
         # aplica o efeito
         data = game_items.equipable_prosthetics_data.get(base, {})
         multiplier = game_items.item_companies_values.get(company, 1)
+        count = sum(1 for p in self.prostheses if base in p)
+        attr_name = f"{prost_name}{count + 1}"
         if "nt" in data:  
-            self.extra_turns += int(data["nt"]*multiplier)
+            self.extra_turns += int(data["nt"] * multiplier)
+            # cria nome único para esta instância da prótese
+            setattr(self, attr_name, None)  # adiciona atributo ao jogador
         if "uq" in data: 
             self.unequip_resist += data["uq"] * multiplier
         if "sc" in data: 
@@ -100,7 +100,7 @@ class Player:
             self.damage_reduction += data["df"] * multiplier
         if "hk" in data: 
             self.hack_speed_bonus += data["hk"] * multiplier
-            
+                
         dmg_reduction, extra_hp, force_unequip_reduction, extra_dmg = parse_weapon_grades(symbols)
 
         self.damage_reduction += dmg_reduction
@@ -108,15 +108,16 @@ class Player:
         self.unequip_resist += force_unequip_reduction
         self.extra_damage += extra_dmg
 
-        self.prostheses.append(prost_name)
+        # salva na lista de próteses
+        self.prostheses.append(attr_name)
 
+        # consome do inventário
         if self.inventory[prost_name] > 1:
             self.inventory[prost_name] -= 1
         else:
             del self.inventory[prost_name]
 
-
-        return f"{prost_name} successfully installed!"
+        return f"{prost_name} successfully installed as {attr_name}!"
 
     def use_item(self, item_name: str) -> str:
         """Usa um item do inventário, aplicando efeitos com multiplicadores de marca e reduzindo quantidade."""
@@ -361,7 +362,7 @@ class Terminal:
         self.prompt_prefix = f"{self._username}@{self.terminal_name}:"
         
 
-    def handle_event(self, events, command_callback=None, error_callback=None):
+    def handle_event(self, events, player, command_callback=None, error_callback=None):
         for event in events:
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_UP:
@@ -371,14 +372,22 @@ class Terminal:
                     
                 elif event.key == pg.K_RETURN:
                     if self.text.strip():
-                        
+                        # mostra o que o jogador digitou no histórico
                         self.messages.append(f"{self.prompt_prefix} {self.text.strip()}")
-                        command = self.parse_command(self.text)
-                        if command and command_callback:
-                            command_callback(command)
-                        elif error_callback:
-                            error_callback(self.text.strip())
+
+                        # agora parse_command retorna uma LISTA de dicts
+                        commands = self.parse_command(self.text, player)
+
+                        if commands:
+                            if command_callback:
+                                command_callback(commands)   # passa lista inteira
+                        else:
+                            if error_callback:
+                                error_callback(self.text.strip())
+
+                    # limpa linha do terminal
                     self.text = ""
+
 
 
 
@@ -422,87 +431,110 @@ class Terminal:
                     self.text += event.unicode
 
 
-    def parse_command(self, text):
-        parts = text.strip().split()
+    def parse_command(self, text, player):
+        # divide o input em segmentos separados por "&&"
+        segments = [seg.strip() for seg in text.split("&&") if seg.strip()]
+
+        max_cmds = max(1, player.extra_turns)  # limite de comandos por turno
+        segments = segments[:max_cmds]             # corta os excedentes
+
+        results = []
+
+        for seg in segments:
+            parts = seg.strip().split()
+            if not parts:
+                continue
+
+            # player -a <hand> <enemy>
+            if len(parts) == 4 and parts[0] == "player" and parts[1] == "-a":
+                hand = parts[2].lower()
+                target = parts[3]
+                if hand in ("right", "left"):
+                    results.append({"type": "attack", "hand": hand, "target": target})
+                else:
+                    results.append({"type": "unknown", "raw": seg})
+
+            # player -h <enemy>
+            elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-h":
+                results.append({"type": "hack", "target": parts[2]})
+
+            # player -equip <hand> <item>
+            elif len(parts) == 4 and parts[0] == "player" and parts[1] == "-equip":
+                hand = parts[2].lower()
+                item = parts[3].lower()  # permitimos "null" aqui
+
+                # monta a lista de mãos válidas
+                valid_hands = ["right", "left"]
+                for prost in player.prostheses:
+                    if "arm" in prost.lower():  # inclui só próteses de braço
+                        valid_hands.append(prost)
+
+                # permite equipar ou desequipar ("null")
+                if hand in valid_hands and (item_base := item if item != "null" else "null"):
+                    results.append({"type": "equip", "hand": hand, "item": item})
+                else:
+                    results.append({"type": "unknown", "raw": seg})
 
 
-        # player -a <hand> <enemy>
-        if len(parts) == 4 and parts[0] == "player" and parts[1] == "-a":
-            hand = parts[2].lower()
-            target = parts[3]
-            if hand in ("right", "left"):
-                return {"type": "attack", "hand": hand, "target": target}
-            return None
-        # player -h <enemy>
-        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-h":
-            target = parts[2]
-            return {"type": "hack", "target": target}
 
-        # player -equip <hand> <item>
-        if len(parts) == 4 and parts[0] == "player" and parts[1] == "-equip":
-            hand = parts[2].lower()
-            item = parts[3]
+            # player -use <item>
+            elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-use":
+                results.append({"type": "use", "item": parts[2].lower()})
 
-            item_parts = item.split("-")
-            if item_parts[0] in game_items.item_companies:
-                item_base = item_parts[1]
+            # player -scan <enemy>
+            elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-scan":
+                results.append({"type": "scan", "target": parts[2].lower()})
+
+            # player -install <protese>
+            elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-install":
+                results.append({"type": "install_prosthesis", "prosthesis": parts[2].lower()})
+
+            # player -i ls
+            elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-i" and parts[2] == "ls":
+                results.append({"type": "inventory_list"})
+
+            # player -e ls
+            elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-e" and parts[2] == "ls":
+                results.append({"type": "equipment_list"})
+
+            # player status
+            elif len(parts) == 2 and parts[0] == "player" and parts[1] == "status":
+                results.append({"type": "status"})
+
+            # player status save
+            elif len(parts) == 3 and parts[0] == "player" and parts[1] == "status" and parts[2] == "save":
+                results.append({"type": "save"})
+
+            # <enemy> -rm
+            elif len(parts) == 2 and parts[1] == "-rm":
+                results.append({"type": "remove", "target": parts[0]})
+
+            # <enemy> spare
+            elif len(parts) == 2 and parts[1] == "spare":
+                results.append({"type": "spare", "target": parts[0]})
+
+            # pickup <item>
+            elif len(parts) == 2 and parts[0] == "pickup":
+                results.append({"type": "pickup", "item": parts[1].lower()})
+
+            # combat runaway
+            elif seg.strip() == "combat runaway":
+                results.append({"type": "runaway"})
+
+            # combat exit
+            elif seg.strip() == "combat exit":
+                results.append({"type": "exit"})
+
+            # help
+            elif len(parts) == 1 and parts[0] == "help":
+                results.append({"type": "help"})
+
+            # comando inválido
             else:
-                item_base = item_parts[0]
+                results.append({"type": "unknown", "raw": seg})
 
-            if hand in ("right", "left") and item_base in game_items.equipable_items_hand:
-                return {"type": "equip", "hand": hand, "item": item}
-            return None
-        #player -use <item>
-        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-use":
-            item = parts[2].lower()
-            return {"type": "use", "item": item}
-        #player -scan <enemy>
-        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-scan":
-            target = parts[2].lower()
-            return {"type": "scan", "target": target}
-        #player -install <protese>
-        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-install":
-            prosthesis = parts[2].lower()
-            return {"type": "install_prosthesis", "prosthesis": prosthesis}
-        #player -i ls
-        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-i" and parts[2] == "ls":
-            return {"type": "inventory_list"}
+        return results
 
-        # player -e ls
-        if len(parts) == 3 and parts[0] == "player" and parts[1] == "-e" and parts[2] == "ls":
-            return {"type": "equipment_list"}
-        #player status
-        if len(parts) == 2 and parts[0] == "player" and parts[1] == "status":
-            return {"type": "status"}
-        # player status save
-        if len(parts) == 3 and parts[0] == "player" and parts[1] == "status" and parts[2] == "save":
-            return {"type": "save"}
-
-
-
-
-        # <nome> -rm
-        if len(parts) == 2 and parts[1] == "-rm":
-            nome = parts[0]
-            return {"type": "remove", "target": nome}
-        #<enemy> spare
-        if len(parts) == 2 and parts[1] == "spare":
-            nome = parts[0]
-            return {"type": "spare", "target": nome}
-    
-        # pickup <item>
-        if len(parts) == 2 and parts[0] == "pickup":
-            return {"type": "pickup", "item": parts[1].lower()}
-
-        # combat runaway
-        if text.strip() == "combat runaway":
-            return {"type": "runaway"}
-
-        # combat exit
-        if text.strip() == "combat exit":
-            return {"type": "exit"}
-
-        return None
 
     def draw(self, screen):
         line_height = self.font.get_height() + 5
@@ -572,6 +604,7 @@ class TerminalMenu:
             return
 
         cmd = parts[0].lower()
+        #set username <username or terminalname>
         if cmd == "set" and len(parts) >= 3:
             if parts[1] == "username":
                 self.player_name = parts[2]
@@ -579,6 +612,7 @@ class TerminalMenu:
             elif parts[1] == "terminalname":
                 self.terminal_name = parts[2]
                 self.terminal.messages.append(f"> Terminal name set to {self.terminal_name}")
+        #start <ng or slot<number>>
         elif cmd == "start" and len(parts) == 2:
             saves = initial_menu.load_all_saves()
             
@@ -641,7 +675,7 @@ class TerminalMenu:
 
             else:
                 self.terminal.messages.append(f"> Unknown start option: {parts[1]}")
-
+        #saves ls
         elif cmd == "saves" and len(parts) == 2 and parts[1] == "ls":
             saves = initial_menu.load_all_saves()
             if not saves:
@@ -652,6 +686,14 @@ class TerminalMenu:
                     player_name = cfg.get("playerName", "player")
                     terminal_name = cfg.get("terminalName", "terminal")
                     self.terminal.messages.append(f"> {slot}: {player_name} @ {terminal_name}")
+        elif cmd == "help":
+            self.terminal.messages.append("> Available commands:")
+            self.terminal.messages.append("  set username <name>      -> set player username")
+            self.terminal.messages.append("  set terminalname <name>  -> set terminal name")
+            self.terminal.messages.append("  start ng                 -> start a new game")
+            self.terminal.messages.append("  start <slot>             -> load a saved game by slot name")
+            self.terminal.messages.append("  saves ls                 -> list all saves")
+            self.terminal.messages.append("  help                     -> show this help message")
         else:
             self.terminal.messages.append("> Unknown command: " + text)
 
