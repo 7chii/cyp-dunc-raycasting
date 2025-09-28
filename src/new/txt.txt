@@ -1,6 +1,3 @@
--> add menu inicial
--> add salvamento (salvar numero do nivel e estado do personagem(itens, equipados, instalados etc)) started com json
--> add escolha de save
 -> melhoria de inimigos dinamicamente (mais fortes quanto mais niveis) ok/2
 
 -> add musica
@@ -8,23 +5,30 @@
 -> opcao de turnoff musica ou audio-effects
 -> add audio effects
 
+-> add apagamento de saves
+
 -> add mais itens
 -> add status effects ok/2
--> comando help
+-> comando help tanto no terminal comum quanto no do menu
 
--> add proteses
--> add lista de proteses instaladas
--> add comando pra instalar proteses
+-> add autocomplete no terminal do menu
+
+-> fix damage talvez
+-> add lista de proteses instaladas 
 -> bloquear entradas do jogador quando abrir terminal pelo lctrl
 
-->testar efeitos de arma
 -> testar geracao de bosses ok/2
-    ->aumentar dados dos bosses ok/2
+    ->aumentar dados dos bosses ok/2i
 
 -> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
--> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
+-> add menu inicial ok
+-> add salvamento ok
+-> add escolha de save ok
+-> add proteses ok 
+-> add comando pra instalar proteses ok 
+-> testar efeitos de arma ok
 -> add barra de scroll (com setinha) ok
 -> add if(nenhum inimigo): liberar porta ok
 -> add porta para subir de nivel ok

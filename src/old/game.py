@@ -34,7 +34,7 @@ def main() -> None:
     font = font = pg.font.SysFont("Courier New", 23)
     clock = pg.time.Clock()
     width, height = constants.SIZE
-    terminal = game_objects.Terminal(font, width, height)
+    terminal = game_objects.Terminal(font, width, height, "nana", "twinkpad")
     half_w, half_h = width // 2, height // 2
     screen = pg.display.set_mode((width, height))
     background_surface = rendering.pre_render_background(font, width, height)

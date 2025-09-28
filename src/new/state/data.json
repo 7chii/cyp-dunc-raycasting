@@ -1,5 +1,39 @@
 {
-    "playerData": {},
-    "itemsData": {},
-    "levelData": {}
+    "slot1": {
+        "playerData": {
+            "right_hand": "megacorp-chainsaw",
+            "left_hand": null,
+            "is_stunned": false,
+            "extra_damage": 1000,
+            "chance": 0.1,
+            "extra_turns": 0,
+            "unequip_resist": 1.0,
+            "scan_objects": 0,
+            "damage_reduction": 0.0,
+            "hack_speed_bonus": 0.0,
+            "hp": 15000,
+            "damage_buff": 0,
+            "buff_timer": 0
+        },
+        "itemsData": {
+            "prostheses": [],
+            "inventory": {
+                "megacorp-chainsaw": 1,
+                "generic-knife-\u03a3": 1,
+                "generic-ecig": 5,
+                "generic-healthjuice": 2,
+                "generic-parteehard": 1,
+                "generic-arm": 1,
+                "n3kst-chainsaw-\u03b1-\u03b1": 1,
+                "n3kst-parteehard": 1
+            }
+        },
+        "levelData": {
+            "level": 26
+        },
+        "config": {
+            "playerName": "n",
+            "terminalName": "1"
+        }
+    }
 }

@@ -5,6 +5,7 @@ equipable_items_hand_dmg = {
             "hammer": 4,
             "chainsaw": 10
         }
+cuttable_items = ("knife", "chainsaw")
 
 usable_items = ("ecig", "healthjuice", "parteehard")
 usable_items_values = {
@@ -25,9 +26,9 @@ item_companies_values= {
 equipable_prosthetics = ("arm", "leg", "eye", "skin", "APU")
 equipable_prosthetics_data = {
     "arm":{"nt":1}, #mais um turno para o jogador a cada braco instalado
-    "leg":{"sp":0.02}, #aumento base de velocidade
-    "eye":{"sc":1}, #define quais objetos sao visiveis no scan, 1 -> armas, 2-> armas e proteses, 3->armas e proteses + info de grades
-    "skin":{"df":0.3}, #30% de bloqueio de dano base
+    "leg":{"uq":0.3}, #dim chance de unequip do jogador
+    "eye":{"sc":1}, #define quantos objetos sao visiveis no scan
+    "skin":{"df":0.3}, #dim chance de stun e reducao de dano
     "APU":{"hk":0.2} #20% diminuicao no tempo de hacks base
 }
 

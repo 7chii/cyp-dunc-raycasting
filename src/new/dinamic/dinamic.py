@@ -78,30 +78,38 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
         main_region |= region
     return grid
 
+import random
+
 def add_exit_door(grid_dict):
     """
-    Escolhe uma parede externa aleatória e adiciona uma porta (valor 3) no dict da grid.
+    Escolhe uma parede externa aleatória acessível (tem caminho livre adjacente) 
+    e adiciona uma porta (valor 3) no dict da grid.
     """
     xs = [x for x, y in grid_dict.keys()]
     ys = [y for x, y in grid_dict.keys()]
     min_x, max_x = min(xs), max(xs)
     min_y, max_y = min(ys), max(ys)
 
-    side = random.choice([0,1,2,3])  # 0=top,1=bottom,2=left,3=right
+    candidates = []
 
-    if side == 0:  # topo
-        x = random.choice([xi for xi in range(min_x+1, max_x) if grid_dict.get((xi, min_y), 0) == 1])
-        y = min_y
-    elif side == 1:  # base
-        x = random.choice([xi for xi in range(min_x+1, max_x) if grid_dict.get((xi, max_y), 0) == 1])
-        y = max_y
-    elif side == 2:  # esquerda
-        y = random.choice([yi for yi in range(min_y+1, max_y) if grid_dict.get((min_x, yi), 0) == 1])
-        x = min_x
-    else:  # direita
-        y = random.choice([yi for yi in range(min_y+1, max_y) if grid_dict.get((max_x, yi), 0) == 1])
-        x = max_x
+    # verifica topo e base
+    for xi in range(min_x + 1, max_x):
+        if grid_dict.get((xi, min_y), 0) == 1 and any(grid_dict.get((xi + dx, min_y + dy), 1) == 0 for dx, dy in [(0,1),(1,0),(-1,0)]):
+            candidates.append((xi, min_y))
+        if grid_dict.get((xi, max_y), 0) == 1 and any(grid_dict.get((xi + dx, max_y + dy), 1) == 0 for dx, dy in [(0,-1),(1,0),(-1,0)]):
+            candidates.append((xi, max_y))
 
+    # verifica esquerda e direita
+    for yi in range(min_y + 1, max_y):
+        if grid_dict.get((min_x, yi), 0) == 1 and any(grid_dict.get((min_x + dx, yi + dy), 1) == 0 for dx, dy in [(1,0),(0,1),(0,-1)]):
+            candidates.append((min_x, yi))
+        if grid_dict.get((max_x, yi), 0) == 1 and any(grid_dict.get((max_x + dx, yi + dy), 1) == 0 for dx, dy in [(-1,0),(0,1),(0,-1)]):
+            candidates.append((max_x, yi))
+
+    if not candidates:
+        raise ValueError("Não foi possível encontrar uma parede externa acessível.")
+
+    x, y = random.choice(candidates)
     grid_dict[(x, y)] = 3  # define porta
     return x, y
 
