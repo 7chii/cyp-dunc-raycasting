@@ -2,17 +2,17 @@ import time
 import random
 import pygame as pg
 
-def run_minigames(screen, terminal):
+def run_minigames(screen, terminal, time_off):
     game = random.choice(["A", "B"])
     if(game=="A"):
-        return run_hack_minigame(screen, terminal)
+        return run_hack_minigame(screen, terminal, time_off)
     elif(game=="B"):
-        return run_space_invaders_minigame(screen, terminal)
+        return run_space_invaders_minigame(screen, terminal, time_off)
     
-def run_space_invaders_minigame(screen, terminal):
+def run_space_invaders_minigame(screen, terminal, time_off):
     hack_width = 16
     hack_height = 8
-    duration = 15
+    duration = 15 - time_off
     player_pos = hack_width // 2
     player_line_idx = hack_height - 1  # linha final do jogador
 
@@ -133,10 +133,10 @@ def run_space_invaders_minigame(screen, terminal):
 
 
 
-def run_hack_minigame(screen, terminal):
+def run_hack_minigame(screen, terminal, time_off):
     hack_width = 20
     hack_height = 8
-    duration = 10
+    duration = 10 - time_off
     player_pos = hack_width // 2
     obstacle_interval = 0.2
 

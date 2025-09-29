@@ -5,6 +5,7 @@ import assets.initial_menu as initial_menu
 import minigames 
 import dinamic.item_dinamic as item_dinamic
 import pygame as pg
+import unicodedata
 
 def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level):
     """
@@ -82,11 +83,13 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         exit()
 
         for command in commands:
+            extra_turns = player.extra_turns
             if black_screen and collided_enemy:
                 if player.is_stunned:
                     terminal.messages.append("You are stunned and lose your turn!")
                     enemy_turn()
                     player.is_stunned = False
+                    extra_turns = 0
                     return black_screen, collided_enemy
                 
                 # comandos durante combate
@@ -117,7 +120,8 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 terminal.messages.append(
                                     f"{collided_enemy.name} received {dmg} dmg from {command['hand']} handed weapon: {weapon}! enemy HP: {collided_enemy.hp}"
                                 )
-                        enemy_turn()  # turno do inimigo acontece normalmente
+                            extra_turns -= 1
+                      
                     else:
                         terminal.messages.append(
                             f"ERROR: You can only attack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'nenhum'})!"
@@ -126,9 +130,9 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 elif command["type"] == "hack":
                     if collided_enemy and collided_enemy.name == command["target"]:
                         terminal_loading(terminal, screen, label="loading hack")
-                        
-                        success = minigames.run_minigames(screen, terminal)
-
+                        off_time = player.hack_speed_bonus
+                        success = minigames.run_minigames(screen, terminal, off_time)
+                        extra_turns -= 1
                         if success:
                             terminal.messages.append("hacking complete")
                             terminal.messages.append(
@@ -136,24 +140,41 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             )
                             collided_enemy.hp = 1
                         else:
-                            player.hp -= 3
-                            terminal.messages.append(f"ERROR: HACKING FAILED (-3 HP) Current HP:{player.hp}")
-                            enemy_turn()
+                            player.hp -= (player.hp * 0.45)
+                            terminal.messages.append(f"ERROR: HACKING FAILED (-45% HP) Current HP:{player.hp}")
                     else:
                         terminal.messages.append(
                             f"ERROR: You can only hack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                         )
+                        
                 elif command["type"] == "scan":
-                    #print(f"{collided_enemy.name}, {command['target']}")
                     if collided_enemy and collided_enemy.name == command["target"]:
                         terminal_loading(terminal, screen, label="loading scan")
+                        extra_turns -= 1
+
+                        # sempre mostra a arma
                         terminal.messages.append(
-                                f"{collided_enemy.name} holds {collided_enemy.weapon}"
+                            f"{collided_enemy.name} holds {collided_enemy.weapon}"
                         )
+
+                        # mostra próteses, limitado ao número de scan_objects do jogador
+                        if hasattr(collided_enemy, "prostheses") and collided_enemy.prostheses:
+                            max_to_show = player.scan_objects
+                            if max_to_show > 0:
+                                shown_prostheses = collided_enemy.prostheses[:max_to_show]
+                                for prosthetic in shown_prostheses:
+                                    terminal.messages.append(
+                                        f"{collided_enemy.name} has prosthetic {prosthetic['name']}"
+                                    )
+                            else:
+                                terminal.messages.append(
+                                    f"Scanning deeper requires more scan modules..."
+                                )
                     else:
                         terminal.messages.append(
                             f"ERROR: You can only scan the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                         )
+
                 elif command["type"] == "install_prosthesis":
                         terminal.messages.append(
                             f"You cannot install during combat."
@@ -162,7 +183,6 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append(player.get_status())
                 elif command["type"] == "save":
                     terminal.messages.append("ERROR: cannot save mid combat!")
-                    enemy_turn()
                 elif command["type"] == "help":
                     terminal.messages.append("Available commands:")
                     terminal.messages.append("  player -a <hand> <enemy>    -> attack with right/left hand")
@@ -230,21 +250,26 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         # gera keywords para inv e itens dropados
                         game_objects.generate_item_keywords(player.inventory, dropped_items)
                 elif command["type"] == "use":
+                    extra_turns -= 1
                     msg = player.use_item(command["item"])
                     terminal.messages.append(msg)
                 elif command["type"] == "equip":
-                    item_full = command["item"]  # ex: megacorp-chainsaw
-                    item_parse = False #caso null
+                    extra_turns -= 1
+                    item_full = command["item"]  # ex: "megacorp-chainsaw"
+                    item_full = unicodedata.normalize('NFC', item_full)
+
+                    item_parse = False
                     # extrai item base sem grades
                     if not item_full == "null":
-                        item_parse = True #caso for um item mesmo
+                        item_parse = True
                         item_parts = item_full.split("-")
                         if item_parts[0] in game_items.item_companies:
                             item_type = item_parts[1]
                         else:
                             item_type = item_parts[0]
+                    inventory_keys = [unicodedata.normalize('NFC', k) for k in player.inventory.keys()]
 
-                    if item_full not in player.inventory and not item_full == "null":
+                    if item_full not in inventory_keys and not item_full == "null":
                         terminal.messages.append(f"You don’t have {item_full} in your inventory!")
                     elif item_parse and item_type not in game_items.equipable_items_hand:
                         terminal.messages.append(f"{item_type} cannot be equipped!")
@@ -252,6 +277,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         hand = command["hand"]
                         valid_hand = False
 
+                        # lista de todas as mãos e próteses arm para checar onde o item está equipado
                         hands_to_check = ["right_hand", "left_hand"]
                         for prost in player.prostheses:
                             base_name = prost
@@ -290,22 +316,26 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 setattr(player, hand_attr, None)
                                 terminal.messages.append(f"You desequipped the item from your {hand}.")
                             else:
-                                # conta quantas vezes o item esta equipado
+                                # conta quantas vezes o item já está equipado
                                 equipped_count = sum(1 for h in hands_to_check if getattr(player, h, None) == item_full)
                                 max_count = player.inventory.get(item_full, 0)
                                 
                                 if equipped_count >= max_count:
                                     terminal.messages.append(f"You already have all {max_count} {item_full} equipped!")
                                 else:
-                    
-                                    # equipa na mao/protese selecionada
+                                    # remove o item de qualquer mão/protese onde ele já está (opcional: só se quiser limitar 1 por slot)
+                                    # for h in hands_to_check:
+                                    #     if getattr(player, h, None) == item_full:
+                                    #         setattr(player, h, None)
+
+                                    # equipa na mão/protese selecionada
                                     setattr(player, hand_attr, item_full)
                                     target_name = "" if hand_attr in ("right_hand", "left_hand") else "prosthesis"
                                     terminal.messages.append(f"You equipped {item_full} on your {hand} {target_name}.")
                         else:
                             terminal.messages.append(f"{hand} is not a valid hand or prosthesis.")
 
-                    enemy_turn()
+                    
 
                 elif command["type"] == "remove":
                     if collided_enemy and command["target"] == collided_enemy.name:
@@ -315,6 +345,13 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 terminal.messages.append(
                                     f"{collided_enemy.name} died and dropped {collided_enemy.weapon} on the ground!"
                                 )
+                                if hasattr(collided_enemy, "prostheses"):
+                                    for prosthetic in collided_enemy.prostheses:
+                                        drop_name = prosthetic["name"]
+                                        dropped_items.append((collided_enemy.x, collided_enemy.y, drop_name))
+                                        terminal.messages.append(
+                                            f"{collided_enemy.name} dropped prosthetic {drop_name}!"
+                                        )
                                 drop = random.choice(list(game_items.usable_items) + [None])  # 50/50
                                 if drop:
                                     drop_item = item_dinamic.generate_item(drop, level)
@@ -342,6 +379,13 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 terminal.messages.append(
                                     f"{collided_enemy.name} dropped {collided_enemy.weapon} on the ground!"
                                 )
+                            if hasattr(collided_enemy, "prostheses"):
+                                    for prosthetic in collided_enemy.prostheses:
+                                        drop_name = prosthetic["name"]
+                                        dropped_items.append((collided_enemy.x, collided_enemy.y, drop_name))
+                                        terminal.messages.append(
+                                            f"{collided_enemy.name} dropped prosthetic {drop_name}!"
+                                        )
                             spared = game_objects.SparedEnemy((collided_enemy.x, collided_enemy.y), name=collided_enemy.name)
                             enemies[enemies.index(collided_enemy)] = spared
                             terminal.messages.append(f"{collided_enemy.name} has been spared and is now peaceful!")
@@ -401,6 +445,9 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         terminal.messages.append(
                                 f"ERROR: command {txt} not recognized!"
                             )
+                if extra_turns ==0:
+                    enemy_turn()
+                    extra_turns = player.extra_turns
             else: 
 
                     # comandos gerais (fora de combate)
@@ -540,6 +587,8 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         game_objects.generate_item_keywords(player.inventory, dropped_items)
                     elif command["type"] == "equip":
                         item_full = command["item"]  # ex: "megacorp-chainsaw"
+                        item_full = unicodedata.normalize('NFC', item_full)
+
                         item_parse = False
                         # extrai item base sem grades
                         if not item_full == "null":
@@ -549,8 +598,9 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 item_type = item_parts[1]
                             else:
                                 item_type = item_parts[0]
+                        inventory_keys = [unicodedata.normalize('NFC', k) for k in player.inventory.keys()]
 
-                        if item_full not in player.inventory and not item_full == "null":
+                        if item_full not in inventory_keys and not item_full == "null":
                             terminal.messages.append(f"You don’t have {item_full} in your inventory!")
                         elif item_parse and item_type not in game_items.equipable_items_hand:
                             terminal.messages.append(f"{item_type} cannot be equipped!")

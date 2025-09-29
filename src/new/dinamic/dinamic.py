@@ -165,7 +165,13 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         boss_chance = 0.9
 
         boss = game_objects.Enemy((x + 0.5, y + 0.5), boss_chance, name=boss_name, hp=boss_hp, weapon=boss_weapon, is_boss=True)
-        boss.is_boss = True  
+        boss.is_boss = True
+        num_prostheses = random.randint(1, min(3, level // 15 + 1))  # até 3 próteses no lvl 45+
+        for _ in range(num_prostheses):
+            prost_type = random.choice(game_items.equipable_prosthetics)
+            prosthetic = item_dinamic.generate_prosthetic(prost_type, level)
+            boss.install_prosthetic(prosthetic)
+
 
         # Progressão de dano extra: até +8 por símbolo no final
         damage_per_symbol = min(2 + level // 10, 8)
@@ -242,6 +248,11 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         damage_per_symbol = min(1 + level // 12, 5)
         enemy.extra_damage = num_grades * damage_per_symbol
         enemy.parse_grades()
+        num_prostheses = random.randint(0, min(3, level // 15 + 1))  # até 3 próteses no lvl 45+
+        for _ in range(num_prostheses):
+            prost_type = random.choice(game_items.equipable_prosthetics)
+            prosthetic = item_dinamic.generate_prosthetic(prost_type, level)
+            enemy.install_prosthetic(prosthetic)
         enemies.append(enemy)
 
     return enemies

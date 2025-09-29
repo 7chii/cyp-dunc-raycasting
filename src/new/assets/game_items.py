@@ -23,19 +23,20 @@ item_companies_values= {
     "generic":1
 }
 #Adjacent processing unit
-equipable_prosthetics = ("arm", "leg", "eye", "skin", "APU")
+equipable_prosthetics = ("arm", "leg", "eye", "skin", "apu")
 equipable_prosthetics_data = {
     "arm":{"nt":1}, #mais um turno para o jogador a cada braco instalado
     "leg":{"uq":0.3}, #dim chance de unequip do jogador
     "eye":{"sc":1}, #define quantos objetos sao visiveis no scan
     "skin":{"df":0.3}, #dim chance de stun e reducao de dano
-    "APU":{"hk":0.2} #20% diminuicao no tempo de hacks base
+    "apu":{"hk":0.2} #20% diminuicao no tempo de hacks base
 }
 
 boss_names = ("reeve", "patrick", "tristram", "preston", "adam", "ed")
 boss_surnames = ("bateman", "gildenberg", "smith", "hayes", "smasher")
 #grades = ("+", "s", "op", "*")
-grades = ("Ω", "Σ", "α", "β")
+grades = ("ω", "σ", "α", "β")
+#grades = ("Ω", "Σ", "α", "β")
 
 enemy_seniority = ("junior", "midlevel", "senior")
 enemy_position = ("hr_defense", "medical_defense", "corporate_defense")

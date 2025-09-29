@@ -4,16 +4,23 @@
 -> add "now playing:" e nome da musica, caso musica turnoff "there is no sound."
 -> opcao de turnoff musica ou audio-effects
 -> add audio effects
+
 -> testar efeitos de proteses
     -> extra turn ok
     -> equip item na protese ok
-    -> hp add
-    -> dim tempo hack
+    -> ataque pela protese ok
+    -> dim tempo hack ok
     -> dim chance de stun
     -> dim chance de unequip
     -> quantos objetos sao visiveis no scan
--> fix scan com logica de proteses
 -> add apagamento de saves
+
+-> add grades nos itens (fix balanceamento)
+-> add efeitos nos itens (dim chance de stun, dim chance de unequip, dim tempo de hack, extra turns,
+quantos objetos sao visiveis no scan)
+
+
+-> add proteses nos inimigos ok
 
 -> add mais itens
 -> add status effects ok/2
@@ -28,7 +35,7 @@
 -> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
 
-
+-> fix scan com logica de proteses ok
 -> comando help tanto no terminal comum quanto no do menu ok
 -> add lista de proteses instaladas ok
 -> add menu inicial ok

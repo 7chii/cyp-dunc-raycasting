@@ -21,24 +21,22 @@ class Player:
         #chance de miss
         self.chance = 0.1
         
-        self.extra_turns = 0
+        self.extra_turns = 1
         self.unequip_resist = 0.0
         self.scan_objects = 0
         self.damage_reduction = 0.0
         self.hack_speed_bonus = 0.0
-        self.hp = 15000
+        self.hp = 15
         self.damage_buff = 0   # usado se consumir algo tipo ParteeHard
         self.buff_timer = 0
 
 
         # inventario do jogador
         self.inventory = {
-            "generic-chainsaw": 1,   # equipavel → sempre 1
-            "generic-knife-Σ":1,
-            "generic-ecig": 5,               # consumivel
+            "generic-knife":1,
+            "generic-ecig": 5,
             "generic-healthjuice": 2,       
             "generic-parteehard": 1, 
-            "generic-arm" : 1
         }
 
 
@@ -98,10 +96,11 @@ class Player:
             self.scan_objects += int(data["sc"] * multiplier)
         if "df" in data:  
             self.damage_reduction += data["df"] * multiplier
+            self.hp += 20
         if "hk" in data: 
             self.hack_speed_bonus += data["hk"] * multiplier
                 
-        dmg_reduction, extra_hp, force_unequip_reduction, extra_dmg = parse_weapon_grades(symbols)
+        dmg_reduction, extra_hp, force_unequip_reduction, extra_dmg = parse_prost_grades(symbols)
 
         self.damage_reduction += dmg_reduction
         self.hp += extra_hp 
@@ -264,6 +263,9 @@ class Enemy:
         self.chance = chance
         self.is_boss = is_boss
         self.unequip_resist = unequip_resist
+        
+        self.prostheses: list[dict] = []
+        
     @property
     def xy(self):
         return constants.Point2(self.x, self.y)
@@ -305,17 +307,36 @@ class Enemy:
             grade_str = "-".join(grade_part)
         else:
             grade_str = ""
-        plus_count = grade_str.count("Ω")
-        s_count = grade_str.count("Σ")
+        plus_count = grade_str.count("ω")
+        s_count = grade_str.count("σ")
         op_count = grade_str.count("α")
         star_count = grade_str.count("β")
-
         self.chance = max(0.01, self.chance - plus_count * 0.1)
         self.extra_damage += min(10, s_count * 5)
         self.force_unequip = op_count > 0
 
         if star_count > 0:
             self.hp = int(self.hp * (30 * star_count))
+        
+    def install_prosthetic(self, prosthetic_obj: dict):
+        """
+        Instala uma prótese no inimigo e aplica seus efeitos.
+        """
+        self.prostheses.append(prosthetic_obj)
+
+        effects = prosthetic_obj.get("effects", {})
+
+        # aplica efeitos
+        if "nt" in effects:  # braço extra -> mais dano
+            self.extra_damage += effects["nt"] * 2
+        if "uq" in effects:  # perna -> mais resistência a unequip
+            self.unequip_resist += effects["uq"]
+        if "sc" in effects:  # olho -> melhora chance de acertar
+            self.chance = max(0.01, self.chance - (0.05 * effects["sc"]))
+        if "df" in effects:  # pele -> mais HP e resistência
+            self.hp = int(self.hp * (1 + effects["df"]))
+        if "hk" in effects:  # APU -> acelera reações (reduz stun chance futura)
+            self.stun_chance = getattr(self, "stun_chance", 0) * (1 - effects["hk"])
 
 
 class SparedEnemy(Enemy):
@@ -449,10 +470,18 @@ class Terminal:
             if len(parts) == 4 and parts[0] == "player" and parts[1] == "-a":
                 hand = parts[2].lower()
                 target = parts[3]
-                if hand in ("right", "left"):
+
+                # monta a lista de mãos válidas
+                valid_hands = ["right", "left"]
+                for prost in player.prostheses:
+                    if "arm" in prost.lower():  # inclui só próteses de braço
+                        valid_hands.append(prost)
+
+                if hand in valid_hands:
                     results.append({"type": "attack", "hand": hand, "target": target})
                 else:
                     results.append({"type": "unknown", "raw": seg})
+
 
             # player -h <enemy>
             elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-h":
@@ -532,7 +561,6 @@ class Terminal:
             # comando inválido
             else:
                 results.append({"type": "unknown", "raw": seg})
-
         return results
 
 
@@ -780,8 +808,8 @@ def generate_item_keywords(player_inventory, dropped_items):
 
 keywords = [
         "player -a", "player -h", "player -equip", "player -use", "player -scan",
-        "player -i ls", "player -e ls",
-        "pickup", "combat runaway", "terminal exit","status", "-install",
+        "player -i ls", "player -e ls", "player status",
+        "pickup", "combat runaway", "terminal exit","status", "player -install",
         "spare", "-rm", "right", "left"
     ]
 
@@ -852,10 +880,10 @@ def parse_weapon_grades(symbols: list):
     force_unequip = 0.0
     extra_dmg = 0
     for sym in symbols:
-                        if sym == "Ω":
+                        if sym == "ω":
                             chance_to_hit *= 0.9
                             extra_dmg += 20 # 10% menos chance de errar por cada +
-                        elif sym == "Σ":
+                        elif sym == "σ":
                             stun_chance += 0.2  # cada S dá 20% chance de stun
                             extra_dmg += 20
                         elif sym == "α":
@@ -872,9 +900,9 @@ def parse_prost_grades(symbols: list):
     extra_dmg = 0
     force_unequip_reduction = 0.0
     for sym in symbols:
-                        if sym == "Ω":
+                        if sym == "ω":
                             dmg_reduction += 0.07
-                        elif sym == "Σ":
+                        elif sym == "σ":
                             extra_hp += 20
                         elif sym == "α":
                             force_unequip_reduction += 0.1
