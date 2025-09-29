@@ -159,9 +159,12 @@ def build_player_from_data(raw_data: dict) -> tuple[game_objects.Player, int]:
     """Reconstrói Player a partir de um dict cru vindo do save"""
     player = game_objects.Player((3, 10))
 
-    # aplica atributos simples
+    # aplica atributos simples e dinâmicos
     for attr, val in raw_data.get("playerData", {}).items():
         if hasattr(player, attr):
+            setattr(player, attr, val)
+        else:
+            # cria dinamicamente (ex: slots de prótese)
             setattr(player, attr, val)
 
     # aplica inventário e próteses
@@ -174,6 +177,7 @@ def build_player_from_data(raw_data: dict) -> tuple[game_objects.Player, int]:
     level = level_data.get("level", 1)
 
     return player, level
+
 
 
 if __name__ == "__main__":

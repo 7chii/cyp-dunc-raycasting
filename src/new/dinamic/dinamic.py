@@ -162,7 +162,7 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         chosen = random.choice(game_items.equipable_items_hand)
         boss_weapon = item_dinamic.generate_weapon(chosen, level)
         boss_weapon = boss_weapon['name']
-        boss_chance = 0.9
+        boss_chance = 0.0
 
         boss = game_objects.Enemy((x + 0.5, y + 0.5), boss_chance, name=boss_name, hp=boss_hp, weapon=boss_weapon, is_boss=True)
         boss.is_boss = True

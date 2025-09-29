@@ -19,7 +19,7 @@ class Player:
         self.extra_damage = 1
         self.prostheses = []
         #chance de miss
-        self.chance = 0.1
+        self.chance = 0.5
         
         self.extra_turns = 1
         self.unequip_resist = 0.0
@@ -88,7 +88,6 @@ class Player:
         attr_name = f"{prost_name}{count + 1}"
         if "nt" in data:  
             self.extra_turns += int(data["nt"] * multiplier)
-            # cria nome único para esta instância da prótese
             setattr(self, attr_name, None)  # adiciona atributo ao jogador
         if "uq" in data: 
             self.unequip_resist += data["uq"] * multiplier
@@ -99,6 +98,9 @@ class Player:
             self.hp += 20
         if "hk" in data: 
             self.hack_speed_bonus += data["hk"] * multiplier
+            self.chance -= (data["hk"] + multiplier) /8 #dim chance de miss
+            if (self.chance <0):
+                self.chance = 0
                 
         dmg_reduction, extra_hp, force_unequip_reduction, extra_dmg = parse_prost_grades(symbols)
 
@@ -275,7 +277,7 @@ class Enemy:
             return self.extra_damage 
 
         # separa o nome da arma em partes
-        company, base, symbols = parse_weapon(self.weapon) 
+        company, base, symbols = parse_weapon(self.weapon)
 
         # pega dano base
         dmg = game_items.equipable_items_hand_dmg.get(base, 1)
@@ -287,13 +289,15 @@ class Enemy:
         else:
             extra_dmg_weapon = 0
             chance_to_hit = 1.0 - self.chance
-            force_unequip = False
+            force_unequip = 0.0
             stun_chance = 0
 
         dmg += self.extra_damage + extra_dmg_weapon
         
         # aplica multiplicador da marca
         dmg *= game_items.item_companies_values.get(company, 1)
+        if(force_unequip > 1.0):
+            force_unequip = 1.0
         
         return int(dmg), chance_to_hit, stun_chance, force_unequip
 
@@ -860,6 +864,8 @@ def wrap_text(text, font, max_width):
             lines.append(current_line)
         return lines
 
+
+
 def parse_weapon(weapon: str):
     """
     Separa arma em: marca, item base e símbolos de grade.
@@ -881,10 +887,10 @@ def parse_weapon_grades(symbols: list):
     extra_dmg = 0
     for sym in symbols:
                         if sym == "ω":
-                            chance_to_hit *= 0.9
-                            extra_dmg += 20 # 10% menos chance de errar por cada +
+                            chance_to_hit += 0.1
+                            extra_dmg += 20
                         elif sym == "σ":
-                            stun_chance += 0.2  # cada S dá 20% chance de stun
+                            stun_chance += 0.2 
                             extra_dmg += 20
                         elif sym == "α":
                             force_unequip += 0.1

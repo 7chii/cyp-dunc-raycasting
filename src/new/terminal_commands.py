@@ -64,11 +64,33 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             player.is_stunned = True
 
                         # aplica force unequip
-                        if random.random() < (force_unequip - player.unequip_resist):  # force_unequip é decimal vindo do parse_weapon_grades
-                            if player.right_hand or player.left_hand:
-                                terminal.messages.append(f"{collided_enemy.name}'s attack threw you to the ground!")
-                                player.right_hand = None
-                                player.left_hand = None
+                        if random.random() < (force_unequip - player.unequip_resist):
+                            # lista de todas as mãos + próteses de braço
+                            hands_to_check = ["right_hand", "left_hand"]
+                            for prost in player.prostheses:
+                                base_name = prost
+                                if "-" in prost:
+                                    parts = prost.split("-")
+                                    if parts[0] in game_items.item_companies:
+                                        base_name = parts[1]
+                                    else:
+                                        base_name = parts[0]
+                                    base_name = ''.join([c for c in base_name if not c.isdigit()])
+                                if base_name == "arm":
+                                    hands_to_check.append(prost)
+
+                            # desequipa tudo
+                            unequipped_items = []
+                            for hand_attr in hands_to_check:
+                                if getattr(player, hand_attr, None):
+                                    unequipped_items.append(getattr(player, hand_attr))
+                                    setattr(player, hand_attr, None)
+
+                            if unequipped_items:
+                                items_str = ", ".join(unequipped_items)
+                                terminal.messages.append(f"You were disarmed! {collided_enemy.name}'s attack made you drop: {items_str}")
+                            else:
+                                terminal.messages.append(f"{collided_enemy.name}'s attack tried to disarm you, but you had nothing equipped.")
 
                         # aplica dano
                         player.hp -= dmg
@@ -126,6 +148,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         terminal.messages.append(
                             f"ERROR: You can only attack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'nenhum'})!"
                         )
+                    enemy_turn()
 
                 elif command["type"] == "hack":
                     if collided_enemy and collided_enemy.name == command["target"]:
@@ -146,6 +169,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         terminal.messages.append(
                             f"ERROR: You can only hack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                         )
+                    enemy_turn()
                         
                 elif command["type"] == "scan":
                     if collided_enemy and collided_enemy.name == command["target"]:
@@ -174,6 +198,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         terminal.messages.append(
                             f"ERROR: You can only scan the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                         )
+                    enemy_turn()
 
                 elif command["type"] == "install_prosthesis":
                         terminal.messages.append(
@@ -253,6 +278,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     extra_turns -= 1
                     msg = player.use_item(command["item"])
                     terminal.messages.append(msg)
+                    enemy_turn()
                 elif command["type"] == "equip":
                     extra_turns -= 1
                     item_full = command["item"]  # ex: "megacorp-chainsaw"
@@ -332,6 +358,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                     setattr(player, hand_attr, item_full)
                                     target_name = "" if hand_attr in ("right_hand", "left_hand") else "prosthesis"
                                     terminal.messages.append(f"You equipped {item_full} on your {hand} {target_name}.")
+                                enemy_turn()
                         else:
                             terminal.messages.append(f"{hand} is not a valid hand or prosthesis.")
 
@@ -445,9 +472,6 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         terminal.messages.append(
                                 f"ERROR: command {txt} not recognized!"
                             )
-                if extra_turns ==0:
-                    enemy_turn()
-                    extra_turns = player.extra_turns
             else: 
 
                     # comandos gerais (fora de combate)
@@ -520,6 +544,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             "damage_buff": player.damage_buff,
                             "buff_timer": player.buff_timer
                         }
+                        for prost in player.prostheses:
+                            if hasattr(player, prost):  
+                                player_data[prost] = getattr(player, prost)
+
 
                         items_data = {
                             "prostheses": player.prostheses,
