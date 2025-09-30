@@ -4,22 +4,26 @@
             "right_hand": null,
             "left_hand": null,
             "is_stunned": false,
-            "extra_damage": 1000,
-            "chance": 0.9,
-            "extra_turns": 2,
-            "unequip_resist": 0.0,
+            "extra_damage": 10000,
+            "chance": 0.1,
+            "extra_turns": 4,
+            "unequip_resist": 0.99,
             "scan_objects": 1,
             "damage_reduction": 0.99,
             "hack_speed_bonus": 3.2,
-            "hp": 15000,
-            "damage_buff": 0,
-            "buff_timer": 0,
-            "generic-arm1": "megacorp-chainsaw"
+            "hp": 1500000,
+            "damage_buff": 20000,
+            "buff_timer": 2835.142999999732,
+            "generic-arm1": "megacorp-chainsaw-\u03c9-\u03c9-\u03c9-\u03c9",
+            "generic-arm2": null,
+            "generic-arm3": null
         },
         "itemsData": {
             "prostheses": [
                 "generic-eye1",
-                "generic-arm1"
+                "generic-arm1",
+                "generic-arm2",
+                "generic-arm3"
             ],
             "inventory": {
                 "megacorp-chainsaw": 2,
@@ -28,16 +32,20 @@
                 "generic-healthjuice": 2,
                 "generic-parteehard": 1,
                 "generic-eye": 1,
-                "generic-arm": 2,
                 "n3kst-chainsaw-\u03b1-\u03b1": 1,
                 "n3kst-parteehard": 1,
                 "generic-apu": 3,
                 "generic-leg": 3,
-                "megacorp-apu": 2
+                "megacorp-apu": 2,
+                "megacorp-hammer-\u03b2-\u03b2-\u03c9-\u03b1": 1,
+                "wyutani-apu-\u03b1-\u03b2": 1,
+                "n3kst-arm-\u03b1-\u03c3": 1,
+                "n3kst-skin-\u03c9-\u03c9": 1,
+                "n3kst-ecig-\u03c3-\u03b1": 1
             }
         },
         "levelData": {
-            "level": 45
+            "level": 49
         },
         "config": {
             "playerName": "n",
@@ -75,6 +83,48 @@
         "config": {
             "playerName": "nana",
             "terminalName": "pc"
+        }
+    },
+    "slot3": {
+        "playerData": {
+            "right_hand": "generic-chainsaw",
+            "left_hand": null,
+            "is_stunned": false,
+            "extra_damage": 1,
+            "chance": 0.35,
+            "extra_turns": 1,
+            "unequip_resist": 0.6,
+            "scan_objects": 4,
+            "damage_reduction": 0.0,
+            "hack_speed_bonus": 0.2,
+            "hp": 84.0,
+            "damage_buff": 0,
+            "buff_timer": 0
+        },
+        "itemsData": {
+            "prostheses": [
+                "generic-leg1",
+                "megacorp-eye1",
+                "generic-leg2",
+                "megacorp-eye2",
+                "generic-apu1"
+            ],
+            "inventory": {
+                "generic-knife": 1,
+                "generic-ecig": 5,
+                "generic-parteehard": 2,
+                "generic-hammer": 2,
+                "megacorp-parteehard": 1,
+                "generic-healthjuice": 1,
+                "generic-chainsaw": 1
+            }
+        },
+        "levelData": {
+            "level": 3
+        },
+        "config": {
+            "playerName": "nana",
+            "terminalName": "twinkpad"
         }
     }
 }

@@ -10,6 +10,8 @@
 -> add efeitos nos itens (dim chance de stun, dim chance de unequip, dim tempo de hack, extra turns,
 quantos objetos sao visiveis no scan)
 
+-> remover da lista de palavras pra tab o nome do inimigo depois de spared ou rm
+
 -> add mais itens
 -> add status effects ok/2
 -> add autocomplete no terminal do menu

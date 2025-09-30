@@ -228,7 +228,6 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
         inv_det = 1.0 / (player.plane.x * player.direction.y - player.direction.x * player.plane.y)
         transform_x = inv_det * (player.direction.y * rel_x - player.direction.x * rel_y)
         transform_y = inv_det * (-player.plane.y * rel_x + player.plane.x * rel_y)
-
         if transform_y <= 0:
             continue
 
@@ -239,14 +238,19 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
             if wall_dist < item_dist:
                 continue
 
+        # posição horizontal na tela
         item_screen_x = int((width / 2) * (1 + transform_x / transform_y))
+        center_cx = max(0, min(cols - 1, item_screen_x // CHAR_W))
+
+        # escala do item pelo depth
         scale = 0.2 / item_dist
         item_size_px = max(CHAR_H, min(int(height * scale), CHAR_H * 2))
 
-        center_cx = max(0, min(cols - 1, item_screen_x // CHAR_W))
-        base_line = int(height * 0.9)
-        top_py = base_line - item_size_px
-        bottom_py = base_line
+        # --- posição vertical corrigida: projeta como sprite, mas com offset para o chão ---
+        sprite_screen_y = int((height / 2) + (height / transform_y) * 0.25)
+
+        top_py = sprite_screen_y - item_size_px
+        bottom_py = sprite_screen_y
         top_row = max(0, top_py // CHAR_H)
         bottom_row = min((height - 1) // CHAR_H, bottom_py // CHAR_H)
 
@@ -257,6 +261,7 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
             if 0 <= cy < cols:
                 for ry in range(top_row, bottom_row + 1):
                     _blit_cached_char(screen, font, ch, color, cy, ry, CHAR_W, CHAR_H)
+
 
 # ---------- fim do bloco ASCII ----------
 def run_along_ray(start, ray_dir, grid_dict):

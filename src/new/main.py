@@ -136,6 +136,8 @@ def main() -> None:
                 level +=1
                 dropped_items = []
                 player.x, player.y = 3, 10
+                save_new_level(terminal, player)
+                
 
         rendering.clear_screen(screen)
         rendering.draw_floor_and_ceiling_ascii(screen, background_surface)
@@ -154,6 +156,55 @@ def allspared(enemies):
         if not enemies:
             return True
         return all(getattr(enemy, "is_peaceful", False) for enemy in enemies)
+def save_new_level(terminal, player):
+    saves = initial_menu.load_all_saves()
+    slot = None
+    for key, data in saves.items():
+        cfg = data.get("config", {})
+        if cfg.get("playerName") == terminal._username and cfg.get("terminalName") == terminal._terminal_name:
+            slot = key
+            break
+
+    # se não achar, cria um slot novo
+    if slot is None:
+        slot = initial_menu.get_next_slot()
+
+    # coleta dados crus do player
+    player_data = {
+        "right_hand": player.right_hand,
+        "left_hand": player.left_hand,
+        "is_stunned": player.is_stunned,
+        "extra_damage": player.extra_damage,
+        "chance": player.chance,
+        "extra_turns": player.extra_turns,
+        "unequip_resist": player.unequip_resist,
+        "scan_objects": player.scan_objects,
+        "damage_reduction": player.damage_reduction,
+        "hack_speed_bonus": player.hack_speed_bonus,
+        "hp": player.hp,
+        "damage_buff": player.damage_buff,
+        "buff_timer": player.buff_timer
+    }
+    for prost in player.prostheses:
+        if hasattr(player, prost):  
+            player_data[prost] = getattr(player, prost)
+
+
+    items_data = {
+        "prostheses": player.prostheses,
+        "inventory": player.inventory
+    }
+
+    
+    slotobj = saves.get(f"{slot}", {})
+    config = slotobj.get("config", {})
+    playername = config.get("playerName", "player")
+    terminalname = config.get("terminalName", "terminal")
+
+    # salva no arquivo
+    initial_menu.save_slot_data(slot, player_data, items_data, playername, terminalname, level)
+
+    terminal.messages.append(f"save complete to {slot}")
     
 def build_player_from_data(raw_data: dict) -> tuple[game_objects.Player, int]:
     """Reconstrói Player a partir de um dict cru vindo do save"""

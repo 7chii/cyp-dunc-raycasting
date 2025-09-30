@@ -93,7 +93,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 terminal.messages.append(f"{collided_enemy.name}'s attack tried to disarm you, but you had nothing equipped.")
 
                         # aplica dano
-                        player.hp -= dmg
+                        dmg_reduc = player.damage_reduction
+                        if(dmg_reduc<=0):
+                            dmg_reduc = 1
+                        player.hp -= (dmg * dmg_reduc)
                         terminal.messages.append(
                             f"{collided_enemy.name} attacked you with {collided_enemy.weapon}! (-{dmg} HP). Your HP: {player.hp}"
                         )
@@ -119,9 +122,21 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     if collided_enemy and command["target"] == collided_enemy.name:
                         terminal_loading(terminal, screen, label="loading attack")
                         dmg, chance_to_hit, stun_chance, force_unequip, weapon  = player.get_damage(command["hand"])
-
+                        chance = 0.0
+                        dmg += player.extra_damage + player.damage_buff
+                        if (chance_to_hit==1.0):
+                            chance = chance_to_hit
+                        else:
+                            chance = player.chance + chance_to_hit
+                            if(chance < 0):
+                                chance == 0.0
+                            if(chance > 1.0):
+                                chance == 1.0
+                        
+                    
+                                
                         # verifica se errou
-                        if random.random() < chance_to_hit + player.chance:
+                        if random.random() > chance:
                             terminal.messages.append(
                                 f"{collided_enemy.name} received 0 dmg from {command['hand']} handed weapon! You missed! enemy HP: {collided_enemy.hp}"
                             )

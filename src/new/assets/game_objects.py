@@ -125,27 +125,60 @@ class Player:
         if item_name not in self.inventory:
             return f"You don’t have {item_name}!"
 
-        # separar prefixo (marca) do nome base
-        parts = item_name.split("-", 1)
-        if len(parts) == 2:
-            company, base_name = parts
+        # separar partes: empresa, base e grades (se existirem)
+        parts = item_name.split("-")
+        if len(parts) < 2:
+            return f"{item_name} is invalid!"
 
-        # checar se na lista de consum
+        company = parts[0]
+        base_name = parts[1]
+        grade_symbols = parts[2:] if len(parts) > 2 else []
+
+        # checar se é item consumível
         if base_name in game_items.usable_items:
             effect = game_items.usable_items_values[base_name]
             multiplier = game_items.item_companies_values.get(company, 1)
             msg_parts = []
 
+
+
             if "H" in effect:
                 hp_gain = int(effect["H"] * multiplier)
-                self.hp += hp_gain
+                self.hp += hp_gain * (self.hp/10)
                 msg_parts.append(f"+{hp_gain} HP")
             
             if "D" in effect:
                 dmg_buff = int(effect["D"] * multiplier)
-                self.damage_buff += dmg_buff
-                self.buff_timer = 120 
+                self.damage_buff += dmg_buff * (self.hp/10)
+                self.buff_timer = 120
                 msg_parts.append(f"+{dmg_buff} Damage buff")
+            
+            if grade_symbols:
+                dmg_reduction, extra_hp, force_unequip_reduction, dim_miss_chance = parse_item_grades(grade_symbols)
+
+                if not extra_hp == 0:
+                    self.hp += extra_hp
+                    msg_parts.append(f"+{extra_hp} bonus HP")
+
+                if not dmg_reduction== 0.0:
+                    self.damage_reduction = getattr(self, "damage_reduction", 0) + dmg_reduction
+                    if(self.damage_reduction > 1.0):
+                        self.damage_reduction = 1.0
+                    msg_parts.append(f"+{int(dmg_reduction*100)}% Damage Reduction")
+
+                if not dim_miss_chance== 0:
+                    self.chance = getattr(self, "chance", 0) - dim_miss_chance
+                    if(self.chance<0):
+                        self.chance = 0.0
+                    msg_parts.append(f"+{dim_miss_chance} Extra Damage")
+
+                if not force_unequip_reduction ==0.0:
+                    self.unequip_resist = getattr(self, "unequip_resist", 1.0) + force_unequip_reduction
+                    if(self.unequip_resist > 1.0):
+                        self.unequip_resist = 1.0
+                    msg_parts.append(f"Unequip resist improved ({force_unequip_reduction:+.1f})")
+
+
 
             # diminuir quantidade
             self.inventory[item_name] -= 1
@@ -157,33 +190,48 @@ class Player:
         return f"{item_name} cannot be used!"
 
 
-    def get_damage(self, hand: str) -> int:
-            items = game_items.equipable_items_hand_dmg
-            item = None
-            if hand == "right":
-                item = self.right_hand
-                if item :
-                    company, base, symbols = parse_weapon(item)
-                    
-            elif hand == "left":
-                item = self.left_hand
-                if item :
-                    company, base, symbols = parse_weapon(item)
+    def get_damage(self, hand: str):
+        """
+        Retorna o dano do ataque usando a mão ou prótese selecionada.
+        hand pode ser "right", "left" ou o nome de uma prótese em self.prostheses.
+        """
+        item = None
+        company = base = None
+        symbols = []
 
-            if not item:
-                return self.extra_damage, 1.0, 0.0, False, None  # caso não tenha arma
+        # --- mãos normais ---
+        if hand == "right":
+            item = self.right_hand
+            if item:
+                company, base, symbols = parse_weapon(item)
 
-            # pega dano base
-            dmg = game_items.equipable_items_hand_dmg.get(base, 1)
+        elif hand == "left":
+            item = self.left_hand
+            if item:
+                company, base, symbols = parse_weapon(item)
 
-            # aplica extra damage (de grades ou inimigo)
-            chance_to_hit, stun_chance, force_unequip, extra_dmg = parse_weapon_grades(symbols)
-            dmg += self.extra_damage + extra_dmg
-            
-            # aplica multiplicador da marca
-            dmg *= game_items.item_companies_values.get(company, 1)
-            
-            return int(dmg), chance_to_hit, stun_chance, force_unequip, item
+        # --- próteses (ex: "generic-arm1") ---
+        elif hand in self.prostheses:
+            item = getattr(self, hand, None)
+            if item:
+                company, base, symbols = parse_weapon(item)
+
+        # --- sem arma equipada ---
+        if not item:
+            return self.extra_damage, 1.0, 0.0, False, None  
+
+        # --- pega dano base ---
+        dmg = game_items.equipable_items_hand_dmg.get(base, 1)
+
+        # --- aplica extras das grades ---
+        chance_to_hit, stun_chance, force_unequip, extra_dmg = parse_weapon_grades(symbols)
+        dmg += self.extra_damage + extra_dmg
+
+        # --- aplica multiplicador da empresa ---
+        dmg *= game_items.item_companies_values.get(company, 1)
+
+        return int(dmg), chance_to_hit, stun_chance, force_unequip, item
+
 
     def update_buffs(self, dt: float) -> None:
         ended = False
@@ -887,7 +935,7 @@ def parse_weapon_grades(symbols: list):
     extra_dmg = 0
     for sym in symbols:
                         if sym == "ω":
-                            chance_to_hit += 0.1
+                            chance_to_hit += 0.2
                             extra_dmg += 20
                         elif sym == "σ":
                             stun_chance += 0.2 
@@ -915,3 +963,24 @@ def parse_prost_grades(symbols: list):
                         elif sym =="β":
                             extra_dmg +=100
     return dmg_reduction, extra_hp, force_unequip_reduction, extra_dmg
+
+def parse_item_grades(symbols: list):
+    """
+    Retorna modificadores extras para itens consumíveis com base nas grades.
+    """
+    extra_hp = 0
+    dmg_reduction = 0.0
+    dim_miss_chance = 0.0
+    force_unequip_reduction = 0.0
+
+    for sym in symbols:
+        if sym == "ω":
+            dmg_reduction += 0.40
+        elif sym == "σ":
+            extra_hp += 20
+        elif sym == "α":
+            force_unequip_reduction += 0.25
+        elif sym == "β":
+            dim_miss_chance += 0.2
+
+    return dmg_reduction, extra_hp, force_unequip_reduction, dim_miss_chance
