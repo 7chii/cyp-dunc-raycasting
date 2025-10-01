@@ -20,6 +20,7 @@ def main() -> None:
     pg.init()
     width, height = constants.SIZE
     font = pg.font.SysFont("Courier New", 23)
+    worldfont = pg.font.SysFont("Courier New", 15)
     screen = pg.display.set_mode((width, height))
     clock = pg.time.Clock()
     half_w, half_h = width // 2, height // 2
@@ -143,7 +144,7 @@ def main() -> None:
         rendering.draw_floor_and_ceiling_ascii(screen, background_surface)
 
         step = 1
-        rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, font, step, see_through)
+        rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, worldfont, step, see_through)
         rendering.draw_items_ascii(screen, player, dropped_items, grid, width, height, font, see_through)
         rendering.draw_enemies_ascii(screen, player, enemies, grid, width, height, font, see_through)
 

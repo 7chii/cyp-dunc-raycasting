@@ -141,6 +141,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 f"{collided_enemy.name} received 0 dmg from {command['hand']} handed weapon! You missed! enemy HP: {collided_enemy.hp}"
                             )
                         else:
+                            if random.random() < 0.3:
+                                collided_enemy.hacked = False
+                            if(collided_enemy.hacked == True):
+                                dmg *= 2
                             # aplica stun
                             if random.random() < stun_chance:
                                 terminal.messages.append(f"Your attack left {collided_enemy.name} stunned!")
@@ -171,12 +175,19 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         off_time = player.hack_speed_bonus
                         success = minigames.run_minigames(screen, terminal, off_time)
                         extra_turns -= 1
+                        dmg = collided_enemy.hp * player.hacking_damage
                         if success:
+                            collided_enemy.hp -= dmg
                             terminal.messages.append("hacking complete")
                             terminal.messages.append(
-                                f"{collided_enemy.name} received {collided_enemy.hp} dmg from hacking! enemy HP: 1"
+                                f"{collided_enemy.name} received {dmg} dmg from hacking! enemy HP: {collided_enemy.hp}"
                             )
-                            collided_enemy.hp = 1
+                            #se menor q % do dano de hacking
+                            if random.random() < player.hacking_damage:
+                                terminal.messages.append(
+                                    f"{collided_enemy.name} has weaknesses! consider attacking!"
+                                )
+                                collided_enemy.hacked = True
                         else:
                             player.hp -= (player.hp * 0.45)
                             terminal.messages.append(f"ERROR: HACKING FAILED (-45% HP) Current HP:{player.hp}")
@@ -555,6 +566,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             "scan_objects": player.scan_objects,
                             "damage_reduction": player.damage_reduction,
                             "hack_speed_bonus": player.hack_speed_bonus,
+                            "hacking_damage":player.hacking_damage,
                             "hp": player.hp,
                             "damage_buff": player.damage_buff,
                             "buff_timer": player.buff_timer

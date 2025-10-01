@@ -21,6 +21,8 @@ class Player:
         #chance de miss
         self.chance = 0.5
         
+        self.hacking_damage = 0.2
+        
         self.extra_turns = 1
         self.unequip_resist = 0.0
         self.scan_objects = 0
@@ -42,16 +44,16 @@ class Player:
 
     def get_status(self):
         return (
-            f"Player Status: "
             f"HP: {self.hp} "
             f"Prostheses: {', '.join(self.prostheses) if self.prostheses else 'None'} "
             f"Extra Damage: {self.extra_damage + self.damage_buff} "
             f"Miss Chance: {self.chance:.2f} "
+            f"Hacking Damage: {self.hacking_damage}% "
             f"Extra Turns: {self.extra_turns} "
             f"Unequip Resist: {self.unequip_resist:.2f} "
             f"Scan Objects: {self.scan_objects} "
             f"Damage Reduction: {self.damage_reduction:.2f} "
-            f"Hack Speed Bonus: {self.hack_speed_bonus:.2f} "
+            f"Hack Speed Bonus: {self.hack_speed_bonus:.2f}s"
             f"Damage Buff: {self.damage_buff} (timer: {self.buff_timer}) "
         )
 
@@ -97,6 +99,7 @@ class Player:
             self.damage_reduction += data["df"] * multiplier
             self.hp += 20
         if "hk" in data: 
+            self.hacking_damage += (data["hk"] * multiplier)/2
             self.hack_speed_bonus += data["hk"] * multiplier
             self.chance -= (data["hk"] + multiplier) /8 #dim chance de miss
             if (self.chance <0):
@@ -312,6 +315,7 @@ class Enemy:
         self.extra_damage = self.hp/10
         self.chance = chance
         self.is_boss = is_boss
+        self.hacked = False
         self.unequip_resist = unequip_resist
         
         self.prostheses: list[dict] = []
@@ -716,6 +720,7 @@ class TerminalMenu:
                     "scan_objects": player.scan_objects,
                     "damage_reduction": player.damage_reduction,
                     "hack_speed_bonus": player.hack_speed_bonus,
+                    "hacking_damage":player.hacking_damage,
                     "hp": player.hp,
                     "damage_buff": player.damage_buff,
                     "buff_timer": player.buff_timer

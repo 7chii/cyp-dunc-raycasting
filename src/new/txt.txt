@@ -6,6 +6,9 @@
 -> add audio effects
 -> add apagamento de saves
 
+-> add antivirus to enemies ( hacking resist )
+-> dano de hacking
+
 -> add grades nos itens (fix balanceamento)
 -> add efeitos nos itens (dim chance de stun, dim chance de unequip, dim tempo de hack, extra turns,
 quantos objetos sao visiveis no scan)
