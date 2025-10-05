@@ -2,7 +2,27 @@ import json
 import pygame as pg
 import os
 
-CONFIG_FILE = "state/data.json"
+if os.name == "nt":
+    CONFIG_FILE = "src/new/state/data.json"
+else:
+    CONFIG_FILE = "state/data.json"
+
+def delete_save_slot(slot_name: str) -> bool:
+    """
+    Apaga um slot específico do arquivo de saves.
+    Retorna True se foi apagado com sucesso, False se o slot não existia.
+    """
+    saves = load_all_saves()
+
+    if slot_name not in saves:
+        return False  # slot não existe
+
+    del saves[slot_name]  # remove o slot
+    with open(CONFIG_FILE, "w") as f:
+        json.dump(saves, f, indent=4)
+
+    return True
+
 
 def get_next_slot():
     saves = load_all_saves()

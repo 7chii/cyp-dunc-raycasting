@@ -18,10 +18,50 @@ level = 0
 def main() -> None:
     global level
     pg.init()
+    pg.mixer.init()
+    footstep_sound = pg.mixer.Sound("src/new/assets/audio/footstep.wav")
+    terminalbg = pg.mixer.Sound("src/new/assets/audio/terminalbg.wav")
+    terminalmsg = pg.mixer.Sound("src/new/assets/audio/terminalmsg.wav")
+    
+    terminalbg.set_volume(0.1)
+    footstep_sound.set_volume(0.3)
+    terminalmsg.set_volume(0.3)
+
+    terminalbg_channel = pg.mixer.Channel(1)
+
+
     width, height = constants.SIZE
+    #base_height = 1000
+    #scale_factor = height / base_height  
+    #font_size_main = int(23 * scale_factor)
+    #font_size_world = int(15 * scale_factor)
+
     font = pg.font.SysFont("Courier New", 23)
     worldfont = pg.font.SysFont("Courier New", 15)
+
+    if os.name == "nt":  # se for Windows
+        try:
+            import ctypes
+            ctypes.windll.user32.SetProcessDPIAware()
+            # Obtém resolução real, ignorando escala do Windows
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            width = user32.GetSystemMetrics(0)
+            height = user32.GetSystemMetrics(1)
+        except Exception:
+            # fallback caso falhe
+            info = pg.display.Info()
+            width, height = info.current_w, info.current_h
+    else:
+        info = pg.display.Info()
+        width, height = info.current_w, info.current_h
+
     screen = pg.display.set_mode((width, height))
+
+
+    #info = pg.display.Info()
+    #width, height = info.current_w, info.current_h
+    #screen = pg.display.set_mode((width, height))
     clock = pg.time.Clock()
     half_w, half_h = width // 2, height // 2
 
@@ -96,17 +136,26 @@ def main() -> None:
         dt = clock.tick(constants.FPS)/1000.0
         if player.update_buffs(dt):
             terminal.messages.append("WARN: buff ended")
-        running, events, tab_pressed, see_through, blocked= handle_events(black_screen, tab_pressed, running, player, enemies, see_through)
+        running, events, tab_pressed, see_through, blocked= handle_events(black_screen, tab_pressed, running, player, enemies, see_through, dt, footstep_sound)
         if not running:
             break
         
         if tab_pressed or black_screen:
+            # toca o som de terminal se ainda não estiver tocando
+            if not terminalbg_channel.get_busy():
+                terminalbg_channel.play(terminalbg, loops=-1)  # loops=-1 significa repetir infinito
+
             screen.fill((0, 0, 0))
             black_screen, collided_enemy = terminal_commands.handle_terminal_commands(
                 screen, enemies, player, terminal, events, dropped_items,
-                black_screen, collided_enemy, grid, level
+                black_screen, collided_enemy, grid, level, terminalmsg
             )
             continue
+        else:
+            if terminalbg_channel.get_busy():
+                terminalbg_channel.stop()
+
+
         
         hit = None
         for enemy in enemies:

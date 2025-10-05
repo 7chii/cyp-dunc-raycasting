@@ -11,6 +11,7 @@ class Player:
         (self.x, self.y) = xy
         self.direction = constants.Point2(1, 0)
         self.plane = constants.Point2(0, 0.66)
+        self.footstep_timer = 0.0
 
         # maos
         self.right_hand = None
@@ -245,7 +246,7 @@ class Player:
                 ended = True
         return ended
     
-    def move(self, dx=0, dy=0, enemies=None) -> None:
+    def move(self, dx=0, dy=0, enemies=None, footstep_sound=None, dt=0) -> None:
         new_x = self.x + dx * constants.STEPSIZE * self.direction.x
         new_y = self.y + dy * constants.STEPSIZE * self.direction.y
 
@@ -254,8 +255,14 @@ class Player:
                 (new_x - e.x) ** 2 + (new_y - e.y) ** 2 > 0.01 for e in enemies
             ):
                 self.x, self.y = new_x, new_y
+                if footstep_sound:
+                    self.footstep_timer += dt
+                    if self.footstep_timer >= 1.0:
+                        footstep_sound.play()
+                        self.footstep_timer = 0.0
 
-    def run(self, dx=0, dy=0, enemies=None) -> None:
+
+    def run(self, dx=0, dy=0, enemies=None, footstep_sound=None, dt=0) -> None:
         new_x = self.x + dx * (constants.STEPSIZE+0.05) * self.direction.x
         new_y = self.y + dy * (constants.STEPSIZE+0.05) * self.direction.y
 
@@ -264,6 +271,12 @@ class Player:
                 (new_x - e.x) ** 2 + (new_y - e.y) ** 2 > 0.01 for e in enemies
             ):
                 self.x, self.y = new_x, new_y
+                if footstep_sound:
+                    self.footstep_timer += dt
+                    if self.footstep_timer >= 0.5:
+                        footstep_sound.play()
+                        self.footstep_timer = 0.0
+
     
     def rotate(self, degrees) -> None:
         rads = (degrees / 36) * constants.DEG_STEP
@@ -272,7 +285,7 @@ class Player:
         )
         self.plane = constants.Point2(*functions.rotate_by_step(self.plane, rads))
 
-    def handle_event(self, events, pressed, enemies=None, blocked=False) -> None:
+    def handle_event(self, events, pressed, enemies=None, blocked=False, dt=0, footstep_sound=None) -> None:
         
         if blocked:
             return
@@ -294,9 +307,9 @@ class Player:
 
         if move_dir != 0:
             if pressed[pg.K_LSHIFT]:
-                self.run(run_dir, move_dir, enemies)
+                self.run(run_dir, move_dir, enemies, footstep_sound, dt)
             else:
-                self.move(move_dir, move_dir, enemies)
+                self.move(move_dir, move_dir, enemies, footstep_sound, dt)
 
 def is_walkable(x, y):
     if 0 <= x < len(grid.GRID) and 0 <= y < len(grid.GRID[0]):
@@ -412,7 +425,9 @@ class Terminal:
         self.width = width
         self.height = height
         self.messages = []
+        self.usercommands = []
         self.scroll_offset = 0
+        self.history_index = 0
         self.text = ""
 
         self._username = username
@@ -439,21 +454,44 @@ class Terminal:
         self.prompt_prefix = f"{self._username}@{self.terminal_name}:"
         
 
-    def handle_event(self, events, player, command_callback=None, error_callback=None):
+    def handle_event(self, events, player, command_callback=None, error_callback=None, terminalmsg=None):
         for event in events:
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_UP:
+                if event.key == pg.K_PAGEUP:
                     self.scroll_offset = min(self.scroll_offset + 1, len(self.messages))
-                elif event.key == pg.K_DOWN:
+                elif event.key == pg.K_PAGEDOWN:
                     self.scroll_offset = max(self.scroll_offset - 1, 0)
+                
+                elif event.key == pg.K_UP:
+                    if self.usercommands:
+                        if self.history_index is None:
+                            self.history_index = len(self.usercommands) - 1
+                        elif self.history_index > 0:
+                            self.history_index -= 1
+                        self.text = self.usercommands[self.history_index]
+
+                elif event.key == pg.K_DOWN:
+                    if self.usercommands:
+                        if self.history_index is None:
+                            continue
+                        elif self.history_index < len(self.usercommands) - 1:
+                            self.history_index += 1
+                            self.text = self.usercommands[self.history_index]
+                        else:
+                            self.history_index = None
+                            self.text = ""
+
                     
                 elif event.key == pg.K_RETURN:
                     if self.text.strip():
                         # mostra o que o jogador digitou no histórico
                         self.messages.append(f"{self.prompt_prefix} {self.text.strip()}")
+                        self.usercommands.append(self.text.strip())
 
                         # agora parse_command retorna uma LISTA de dicts
                         commands = self.parse_command(self.text, player)
+                        if terminalmsg:
+                            terminalmsg.play()
 
                         if commands:
                             if command_callback:
