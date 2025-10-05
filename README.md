@@ -61,7 +61,7 @@ help
 
 ## Exemplos-de-gameplay
 
-
+![Tela do jogo](term.png)
 
 ## Créditos
 
