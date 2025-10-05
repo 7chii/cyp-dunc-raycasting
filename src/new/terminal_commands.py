@@ -175,9 +175,14 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         off_time = player.hack_speed_bonus
                         success = minigames.run_minigames(screen, terminal, off_time)
                         extra_turns -= 1
-                        dmg = collided_enemy.hp * player.hacking_damage
+                        print(collided_enemy.oghp)
+                        print(collided_enemy.hp)
+                        dmg = collided_enemy.oghp * player.hacking_damage
+                        
                         if success:
                             collided_enemy.hp -= dmg
+                            if(collided_enemy.hp <= 0):
+                                collided_enemy.hp = 1
                             terminal.messages.append("hacking complete")
                             terminal.messages.append(
                                 f"{collided_enemy.name} received {dmg} dmg from hacking! enemy HP: {collided_enemy.hp}"

@@ -277,7 +277,7 @@ class Player:
         if blocked:
             return
 
-        # rotação
+        # rotacao
         if pressed[pg.K_LEFT]:
             self.rotate(-constants.DEG_STEP)
         if pressed[pg.K_RIGHT]:
@@ -309,6 +309,7 @@ class Enemy:
         self.color = constants.ENEMY
         self.size = 0.3
         self.name = name
+        self.oghp = hp
         self.hp = hp
         self.weapon = weapon
         self.is_stunned = False
@@ -357,7 +358,7 @@ class Enemy:
         self.stun_chance = 0
         self.force_unequip = False
 
-        # separa a parte dos grades (após o último "-")
+        # separa a parte dos grades
         if "-" in self.name:
             grade_part = self.name.split("-")[-4:]  
             grade_str = "-".join(grade_part)
@@ -373,6 +374,7 @@ class Enemy:
 
         if star_count > 0:
             self.hp = int(self.hp * (30 * star_count))
+            self.oghp = self.hp
         
     def install_prosthetic(self, prosthetic_obj: dict):
         """
@@ -384,7 +386,7 @@ class Enemy:
 
         # aplica efeitos
         if "nt" in effects:  # braço extra -> mais dano
-            self.extra_damage += effects["nt"] * 2
+            self.extra_damage += effects["nt"] * 30
         if "uq" in effects:  # perna -> mais resistência a unequip
             self.unequip_resist += effects["uq"]
         if "sc" in effects:  # olho -> melhora chance de acertar
@@ -393,6 +395,7 @@ class Enemy:
             self.hp = int(self.hp * (1 + effects["df"]))
         if "hk" in effects:  # APU -> acelera reações (reduz stun chance futura)
             self.stun_chance = getattr(self, "stun_chance", 0) * (1 - effects["hk"])
+        self.oghp = self.hp
 
 
 class SparedEnemy(Enemy):

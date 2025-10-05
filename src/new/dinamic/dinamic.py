@@ -243,7 +243,6 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         hp = hp_base + num_grades * symbolVal # cada símbolo adiciona +5 HP
 
         enemy = game_objects.Enemy((x + 0.5, y + 0.5), chance, name=name, hp=hp, weapon=weapon)
-
         # Dano extra progressivo
         damage_per_symbol = min(1 + level // 12, 5)
         enemy.extra_damage = num_grades * damage_per_symbol
