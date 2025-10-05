@@ -40,15 +40,15 @@ Neural Terminal RPG é um jogo de aventura e combate ambientado em um mundo cybe
 1. Clone o repositório:  
 ```bash
 git clone <URL_DO_REPOSITORIO>
-
+```
 2. Instale dependências:
 ```bash
 pip install -r requirements.txt
-
+```
 3. Execute o jogo:
 ```bash
 python main.py
-
+```
 ---
 
 ## Como-jogar
@@ -56,7 +56,7 @@ python main.py
 1. Digite no terminal:
 ```bash
 help
-
+```
 ---
 
 ## Exemplos-de-gameplay
