@@ -61,7 +61,15 @@ help
 
 ## Exemplos-de-gameplay
 
-![Tela do jogo](term.png)
+![Tela do jogo](readmeimg/term.png)
+
+---
+
+![Tela do jogo](readmeimg/wv.png)
+
+---
+
+![Tela do jogo](readmeimg/term2.png)
 
 ## Créditos
 
