@@ -11,6 +11,7 @@ class Player:
         (self.x, self.y) = xy
         self.direction = constants.Point2(1, 0)
         self.plane = constants.Point2(0, 0.66)
+        self.footstep_timer = 0.0
 
         # maos
         self.right_hand = None
@@ -67,14 +68,13 @@ class Player:
         if prost_name not in self.inventory:
             return f"You don’t have {prost_name}!"
 
-        # verifica se é um tipo equip
+        # verifica se eh protese
         if base not in game_items.equipable_prosthetics:
             return f"{prost_name} is not a valid prosthesis!"
 
         cuttable_items = game_items.cuttable_items
 
         for item_full in self.inventory:
-            # pega o item base (remove prefixo de empresa e sufixo de grades)
             item_parts = item_full.split("-")
             item_base = item_parts[1] if item_parts[0] in game_items.item_companies else item_parts[0]
             if item_base in cuttable_items:
@@ -90,7 +90,7 @@ class Player:
         attr_name = f"{prost_name}{count + 1}"
         if "nt" in data:  
             self.extra_turns += int(data["nt"] * multiplier)
-            setattr(self, attr_name, None)  # adiciona atributo ao jogador
+            setattr(self, attr_name, None)
         if "uq" in data: 
             self.unequip_resist += data["uq"] * multiplier
         if "sc" in data: 
@@ -112,10 +112,10 @@ class Player:
         self.unequip_resist += force_unequip_reduction
         self.extra_damage += extra_dmg
 
-        # salva na lista de próteses
+        # salva na lista de proteses
         self.prostheses.append(attr_name)
 
-        # consome do inventário
+        # consome do inv
         if self.inventory[prost_name] > 1:
             self.inventory[prost_name] -= 1
         else:
@@ -137,7 +137,7 @@ class Player:
         base_name = parts[1]
         grade_symbols = parts[2:] if len(parts) > 2 else []
 
-        # checar se é item consumível
+        # checar se eh item consumivel
         if base_name in game_items.usable_items:
             effect = game_items.usable_items_values[base_name]
             multiplier = game_items.item_companies_values.get(company, 1)
@@ -195,14 +195,14 @@ class Player:
 
     def get_damage(self, hand: str):
         """
-        Retorna o dano do ataque usando a mão ou prótese selecionada.
-        hand pode ser "right", "left" ou o nome de uma prótese em self.prostheses.
+        Retorna o dano do ataque usando a mao ou protese selecionada.
+        hand pode ser "right", "left" ou o nome de uma prot em self.prostheses.
         """
         item = None
         company = base = None
         symbols = []
 
-        # --- mãos normais ---
+        # --- maos normais ---
         if hand == "right":
             item = self.right_hand
             if item:
@@ -213,7 +213,7 @@ class Player:
             if item:
                 company, base, symbols = parse_weapon(item)
 
-        # --- próteses (ex: "generic-arm1") ---
+        # --- proteses (ex: "generic-arm1") ---
         elif hand in self.prostheses:
             item = getattr(self, hand, None)
             if item:
@@ -245,7 +245,7 @@ class Player:
                 ended = True
         return ended
     
-    def move(self, dx=0, dy=0, enemies=None) -> None:
+    def move(self, dx=0, dy=0, enemies=None, footstep_sound=None, dt=0) -> None:
         new_x = self.x + dx * constants.STEPSIZE * self.direction.x
         new_y = self.y + dy * constants.STEPSIZE * self.direction.y
 
@@ -254,8 +254,14 @@ class Player:
                 (new_x - e.x) ** 2 + (new_y - e.y) ** 2 > 0.01 for e in enemies
             ):
                 self.x, self.y = new_x, new_y
+                if footstep_sound:
+                    self.footstep_timer += dt
+                    if self.footstep_timer >= 1.0:
+                        footstep_sound.play()
+                        self.footstep_timer = 0.0
 
-    def run(self, dx=0, dy=0, enemies=None) -> None:
+
+    def run(self, dx=0, dy=0, enemies=None, footstep_sound=None, dt=0) -> None:
         new_x = self.x + dx * (constants.STEPSIZE+0.05) * self.direction.x
         new_y = self.y + dy * (constants.STEPSIZE+0.05) * self.direction.y
 
@@ -264,6 +270,12 @@ class Player:
                 (new_x - e.x) ** 2 + (new_y - e.y) ** 2 > 0.01 for e in enemies
             ):
                 self.x, self.y = new_x, new_y
+                if footstep_sound:
+                    self.footstep_timer += dt
+                    if self.footstep_timer >= 0.5:
+                        footstep_sound.play()
+                        self.footstep_timer = 0.0
+
     
     def rotate(self, degrees) -> None:
         rads = (degrees / 36) * constants.DEG_STEP
@@ -272,7 +284,7 @@ class Player:
         )
         self.plane = constants.Point2(*functions.rotate_by_step(self.plane, rads))
 
-    def handle_event(self, events, pressed, enemies=None, blocked=False) -> None:
+    def handle_event(self, events, pressed, enemies=None, blocked=False, dt=0, footstep_sound=None) -> None:
         
         if blocked:
             return
@@ -294,9 +306,9 @@ class Player:
 
         if move_dir != 0:
             if pressed[pg.K_LSHIFT]:
-                self.run(run_dir, move_dir, enemies)
+                self.run(run_dir, move_dir, enemies, footstep_sound, dt)
             else:
-                self.move(move_dir, move_dir, enemies)
+                self.move(move_dir, move_dir, enemies, footstep_sound, dt)
 
 def is_walkable(x, y):
     if 0 <= x < len(grid.GRID) and 0 <= y < len(grid.GRID[0]):
@@ -309,7 +321,6 @@ class Enemy:
         self.color = constants.ENEMY
         self.size = 0.3
         self.name = name
-        self.oghp = hp
         self.hp = hp
         self.weapon = weapon
         self.is_stunned = False
@@ -374,7 +385,6 @@ class Enemy:
 
         if star_count > 0:
             self.hp = int(self.hp * (30 * star_count))
-            self.oghp = self.hp
         
     def install_prosthetic(self, prosthetic_obj: dict):
         """
@@ -385,9 +395,9 @@ class Enemy:
         effects = prosthetic_obj.get("effects", {})
 
         # aplica efeitos
-        if "nt" in effects:  # braço extra -> mais dano
-            self.extra_damage += effects["nt"] * 30
-        if "uq" in effects:  # perna -> mais resistência a unequip
+        if "nt" in effects:  # braco extra -> mais dano
+            self.extra_damage += effects["nt"] * 2
+        if "uq" in effects:  # perna -> mais resistencia a unequip
             self.unequip_resist += effects["uq"]
         if "sc" in effects:  # olho -> melhora chance de acertar
             self.chance = max(0.01, self.chance - (0.05 * effects["sc"]))
@@ -395,18 +405,16 @@ class Enemy:
             self.hp = int(self.hp * (1 + effects["df"]))
         if "hk" in effects:  # APU -> acelera reações (reduz stun chance futura)
             self.stun_chance = getattr(self, "stun_chance", 0) * (1 - effects["hk"])
-        self.oghp = self.hp
 
 
 class SparedEnemy(Enemy):
     def __init__(self, xy, name="spared_enemy", dropped_weapon=None, chance=0):
         super().__init__(xy, name=name, hp=1, weapon=dropped_weapon, chance=0)
         self.color = constants.SPARED
-        self.weapon = None  # n possui arma
+        self.weapon = None
         self.size = 0.3
 
     def get_damage(self) -> int:
-        # n causa dano
         return 0
 
 class Terminal:
@@ -415,7 +423,9 @@ class Terminal:
         self.width = width
         self.height = height
         self.messages = []
+        self.usercommands = []
         self.scroll_offset = 0
+        self.history_index = 0
         self.text = ""
 
         self._username = username
@@ -442,25 +452,45 @@ class Terminal:
         self.prompt_prefix = f"{self._username}@{self.terminal_name}:"
         
 
-    def handle_event(self, events, player, command_callback=None, error_callback=None):
+    def handle_event(self, events, player, command_callback=None, error_callback=None, terminalmsg=None):
         for event in events:
             if event.type == pg.KEYDOWN:
-                if event.key == pg.K_UP:
+                if event.key == pg.K_PAGEUP:
                     self.scroll_offset = min(self.scroll_offset + 1, len(self.messages))
-                elif event.key == pg.K_DOWN:
+                elif event.key == pg.K_PAGEDOWN:
                     self.scroll_offset = max(self.scroll_offset - 1, 0)
+                
+                elif event.key == pg.K_UP:
+                    if self.usercommands:
+                        if self.history_index is None:
+                            self.history_index = len(self.usercommands) - 1
+                        elif self.history_index > 0:
+                            self.history_index -= 1
+                        self.text = self.usercommands[self.history_index]
+
+                elif event.key == pg.K_DOWN:
+                    if self.usercommands:
+                        if self.history_index is None:
+                            continue
+                        elif self.history_index < len(self.usercommands) - 1:
+                            self.history_index += 1
+                            self.text = self.usercommands[self.history_index]
+                        else:
+                            self.history_index = None
+                            self.text = ""
+
                     
                 elif event.key == pg.K_RETURN:
                     if self.text.strip():
-                        # mostra o que o jogador digitou no histórico
                         self.messages.append(f"{self.prompt_prefix} {self.text.strip()}")
-
-                        # agora parse_command retorna uma LISTA de dicts
+                        self.usercommands.append(self.text.strip())
                         commands = self.parse_command(self.text, player)
+                        if terminalmsg:
+                            terminalmsg.play()
 
                         if commands:
                             if command_callback:
-                                command_callback(commands)   # passa lista inteira
+                                command_callback(commands)
                         else:
                             if error_callback:
                                 error_callback(self.text.strip())
@@ -530,10 +560,10 @@ class Terminal:
                 hand = parts[2].lower()
                 target = parts[3]
 
-                # monta a lista de mãos válidas
+                # monta a lista de maos validas
                 valid_hands = ["right", "left"]
                 for prost in player.prostheses:
-                    if "arm" in prost.lower():  # inclui só próteses de braço
+                    if "arm" in prost.lower():  # inclui so proteses de braco
                         valid_hands.append(prost)
 
                 if hand in valid_hands:
@@ -551,10 +581,10 @@ class Terminal:
                 hand = parts[2].lower()
                 item = parts[3].lower()  # permitimos "null" aqui
 
-                # monta a lista de mãos válidas
+                # monta a lista de maos vakidas
                 valid_hands = ["right", "left"]
                 for prost in player.prostheses:
-                    if "arm" in prost.lower():  # inclui só próteses de braço
+                    if "arm" in prost.lower():  # inclui so proteses de barco
                         valid_hands.append(prost)
 
                 # permite equipar ou desequipar ("null")
@@ -789,8 +819,7 @@ class TerminalMenu:
         txt_surf = self.terminal.font.render("> " + self.input_text, True, (0,255,0))
         screen.blit(txt_surf, (10, self.terminal.height - 30))
 
-        # por algo como
-        self.terminal.text = self.input_text  # propaga o texto do menu para o terminal
+        self.terminal.text = self.input_text
         self.terminal.draw(screen)
 
 
@@ -806,11 +835,18 @@ def longest_common_prefix(strs):
                     return shortest[:i]
         return shortest
 
+def remove_keyword(name: str) -> None:
+    """ Remove keywords da lista """
+    global keywords
+    keywords.remove(name)
+
+
 def generate_item_keywords(player_inventory, dropped_items):
     """
     Gera lista de keywords para autocomplete a partir de:
-    - Inventário do jogador
+    - inv do jogador
     - Itens dropados
+    - Proteses
     Inclui prefixos de empresas e sufixos de grades (se existirem).
     """
 
@@ -833,7 +869,7 @@ def generate_item_keywords(player_inventory, dropped_items):
         # detecta prefixo de empresa
         company_prefix = item_parts[0] if item_parts[0] in companies else None
 
-        # pega item_base (segundo se tiver empresa, senão primeiro)
+        # pega item_base (segundo se tiver empresa, ou primeiro)
         if company_prefix:
             if len(item_parts) >= 2:
                 item_base = item_parts[1]
@@ -848,16 +884,16 @@ def generate_item_keywords(player_inventory, dropped_items):
         # monta nome base
         keyword = f"{company_prefix}-{item_base}" if company_prefix else item_base
 
-        # só adiciona se for item válido
+        # adiciona se for item válido
         if item_base in equip_items or item_base in usable or item_base in prosthetics:
             keywords.append(keyword)
 
-            # adiciona versão com grades
+            # adiciona ver com grades
             if grades:
                 keyword_with_grades = f"{keyword}-{'-'.join(grades)}"
                 keywords.append(keyword_with_grades)
 
-    # ---- Inventário do jogador ----
+    # ---- inv do jogador ----
     for full_name in player_inventory:
         process_item(full_name)
 
@@ -870,14 +906,10 @@ keywords = [
         "player -a", "player -h", "player -equip", "player -use", "player -scan",
         "player -i ls", "player -e ls", "player status",
         "pickup", "combat runaway", "terminal exit","status", "player -install",
-        "spare", "-rm", "right", "left"
+        "spare", "-rm", "right", "left", "save"
     ]
 
 def get_key_words(collided_enemy=None):
-    """
-    Retorna uma lista de possíveis comandos/palavras para autocomplete.
-    Adiciona também os nomes dos inimigos em combate.
-    """
     global keywords
 
     try:
@@ -890,6 +922,8 @@ def get_key_words(collided_enemy=None):
             keywords.extend(list(game_items.equipable_prosthetics))
         if hasattr(game_items, "grades"):
             keywords.extend(list(game_items.grades))
+        if hasattr(game_items, "item_companies"):
+            keywords.extend(list(game_items.item_companies))
     except Exception:
         pass
 
@@ -902,8 +936,7 @@ def get_key_words(collided_enemy=None):
     
 def wrap_text(text, font, max_width):
         """
-        divide texto em várias linhas que caibam em max_width pixels.
-        Retorna uma lista de linhas.
+        Divide texto em varias linhas (pra nao passar da tela)
         """
         words = text.split(" ")
         lines = []
@@ -925,7 +958,7 @@ def wrap_text(text, font, max_width):
 def parse_weapon(weapon: str):
     """
     Separa arma em: marca, item base e símbolos de grade.
-    Ex: 'wyutani-chainsaw-s-op' -> ('wyutani', 'chainsaw', ['s','op'])
+    Ex: 'wyutani-chainsaw-ω-σ' -> ('wyutani', 'chainsaw', ['ω','σ'])
     """
     parts = weapon.split("-")
     if len(parts) < 2:
@@ -974,7 +1007,7 @@ def parse_prost_grades(symbols: list):
 
 def parse_item_grades(symbols: list):
     """
-    Retorna modificadores extras para itens consumíveis com base nas grades.
+    Retorna modificadores extras para itens usaveis com base nas grades.
     """
     extra_hp = 0
     dmg_reduction = 0.0
@@ -992,3 +1025,74 @@ def parse_item_grades(symbols: list):
             dim_miss_chance += 0.2
 
     return dmg_reduction, extra_hp, force_unequip_reduction, dim_miss_chance
+
+def show_terminal_credits(screen, terminal, clock, font, save_slot=None):
+    """
+    Creditos depois menu inicial.
+    """
+    terminal.messages.clear()
+    terminal.text = ""
+
+    # tenta parar música atual
+    try:
+        pg.mixer.music.fadeout(2000)
+    except Exception:
+        pass
+
+    # Créditos
+    credits_lines = [
+        ">>> SESSION LOG END <<<",
+        "",
+        "PROTOCOL ONBOARDING",
+        "----------------------------",
+        "Project Lead: Mariana Pacheco, Tiago Daumas Vanni",
+        "Programming: Mariana Pacheco, Tiago Daumas Vanni",
+        "Design & Narrative: Mariana Pacheco, Tiago Daumas Vanni",
+        "Game planning and documentation: Tiago Daumas Vanni"
+        "",
+        "Special Thanks:",
+        "  All players who survived the terminal.",
+        "",
+        "Shutting down neural interface...",
+        "Deleting runtime data...",
+        "",
+        "Thanks for playing.",
+        "",
+        "Press any key to return to main terminal.",
+    ]
+
+    # Remove save finalizado
+    if save_slot:
+        try:
+            initial_menu.delete_save_slot(save_slot)
+            credits_lines.insert(-3, f"[ OK ] Save '{save_slot}' erased.")
+        except Exception as e:
+            credits_lines.insert(-3, f"[ ERR ] Could not delete save: {e}")
+
+    # Mostra linha a linha com delay
+    for line in credits_lines:
+        terminal.messages.append(line)
+        screen.fill((0, 0, 0))
+        terminal.draw(screen)
+        pg.display.flip()
+        pg.time.wait(3500)  # 0.35s entre linhas
+
+    # Espera o jogador pressionar algo
+    waiting = True
+    while waiting:
+        for e in pg.event.get():
+            if e.type == pg.QUIT:
+                pg.quit()
+                exit()
+            elif e.type == pg.KEYDOWN:
+                waiting = False
+        clock.tick(30)
+
+    # Limpa o terminal e volta ao menu inicial
+    terminal.messages.clear()
+    terminal.text = ""
+    terminal.username = "player"
+    terminal.terminal_name = "terminal"
+
+    menu = TerminalMenu(terminal)
+    return menu  

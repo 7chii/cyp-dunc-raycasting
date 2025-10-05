@@ -7,7 +7,7 @@ import dinamic.item_dinamic as item_dinamic
 import pygame as pg
 import unicodedata
 
-def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level):
+def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level, terminalmsg):
     """
     lida com os comandos do terminal (apertar TAB ou combate) e retorna
     os estados atualizados de black_screen e collided_enemy
@@ -175,10 +175,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         off_time = player.hack_speed_bonus
                         success = minigames.run_minigames(screen, terminal, off_time)
                         extra_turns -= 1
-                        print(collided_enemy.oghp)
-                        print(collided_enemy.hp)
-                        dmg = collided_enemy.oghp * player.hacking_damage
-                        
+                        if collided_enemy.is_boss:
+                            dmg = collided_enemy.hp * player.hacking_damage
+                        else:
+                            dmg = collided_enemy.hp
                         if success:
                             collided_enemy.hp -= dmg
                             if(collided_enemy.hp <= 0):
@@ -256,7 +256,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append("  pickup <item>               -> pick up nearby item")
                     terminal.messages.append("  combat runaway              -> try to escape combat")
                     terminal.messages.append("  combat exit                 -> end combat if enemy HP = 1")
+                    terminal.messages.append("  to view older commands      -> ↑ / ↓")
+                    terminal.messages.append("  to view older msg history   -> pgup / pgdown")
                     terminal.messages.append("  help                        -> show this list")
+                    terminal.messages.append("  exit the game               -> esc")
 
                 elif command["type"] == "pickup":
                     item = command["item"]
@@ -417,6 +420,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                     dropped_items.append((collided_enemy.x, collided_enemy.y, drop_name))
                                     terminal.messages.append(f"{collided_enemy.name} also dropped {drop_name}!")
                             game_objects.generate_item_keywords(player.inventory, dropped_items)
+                            game_objects.remove_keyword(collided_enemy.name)
                             enemies.remove(collided_enemy)
                             terminal.messages.append(f"{collided_enemy.name} was removed!")
                             terminal.text = ""
@@ -454,6 +458,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 dropped_items.append((collided_enemy.x, collided_enemy.y, drop_name))
                                 terminal.messages.append(f"{collided_enemy.name} also dropped {drop_name}!")
                             game_objects.generate_item_keywords(player.inventory, dropped_items)
+                            game_objects.remove_keyword(collided_enemy.name)
                             collided_enemy = spared
                             spared.is_peaceful = True
                             terminal.text = ""
@@ -540,7 +545,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         terminal.messages.append("  pickup <item>               -> pick up nearby item")
                         terminal.messages.append("  combat runaway              -> try to escape combat")
                         terminal.messages.append("  combat exit                 -> end combat if enemy HP = 1")
+                        terminal.messages.append("  to view older commands      -> ↑ / ↓")
+                        terminal.messages.append("  to view older msg history   -> pgup / pgdown")
                         terminal.messages.append("  help                        -> show this list")
+                        terminal.messages.append("  exit the game               -> esc")
 
                     elif command["type"] == "status":
                         terminal.messages.append(player.get_status())
@@ -754,7 +762,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
     def terminal_error_callback(cmd_text):
         terminal.messages.append(f'ERROR: Command "{cmd_text}" not recognized!')
 
-    terminal.handle_event(events, player, command_callback=terminal_command_callback, error_callback=terminal_error_callback)
+    terminal.handle_event(events, player, command_callback=terminal_command_callback, error_callback=terminal_error_callback, terminalmsg=terminalmsg)
     terminal.draw(screen)
     pg.display.flip()
     return black_screen, collided_enemy

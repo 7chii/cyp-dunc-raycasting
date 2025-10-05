@@ -3,9 +3,7 @@ import pygame as pg
 import constmath.functions as functions
 import constmath.numerical as numerical
 
-ASCII_CHARS = constants.ASCII_CHARS  # string, ex: " .:-=+*#%@"
-
-# cache global de superfícies (char, cor) -> Surface
+ASCII_CHARS = constants.ASCII_CHARS
 _char_surface_cache = {}
 
 def _char_for_color(color):
@@ -54,7 +52,7 @@ def pre_render_background(font, width, height):
     return surf
 
 def draw_floor_and_ceiling_ascii(screen, background_surface):
-    """Copia o fundo pré-renderizado."""
+    """Copia o fundo pre-renderizado."""
     screen.blit(background_surface, (0,0))
 
 def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, font, step=1, see_through=False):
@@ -68,7 +66,7 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
         ray = constants.Point2(direction.x + plane.x * camera_x,
                                direction.y + plane.y * camera_x)
 
-        # percorre o raio e retorna parede e cubículo
+        # percorre o raio e retorna parede e cubiculo
         dist, side, element, cubicle_hit = run_along_ray(origin, ray, grid_dict)
 
         if side == -1:
@@ -77,7 +75,7 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
         # --- detectar porta ---
         # percorre o mesmo raio e pega a primeira porta (valor 3)
         door_dist, _, _ = None, None, None
-        for step_dist in range(1, 50):  # checar até 50 unidades à frente
+        for step_dist in range(1, 50):  # checar ate 50 unidades a frente
             check_x = int(origin.x + ray.x * step_dist)
             check_y = int(origin.y + ray.y * step_dist)
             if grid_dict.get((check_x, check_y), 0) == 3:
@@ -104,7 +102,7 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
                 wall_color = functions.darken_rgb(wall_color, 50)
             wall_color = functions.darken_rgb(wall_color, ratio * 150)
 
-        # porta: desenhar se mais próxima que a parede ou see_through=True
+        # porta: desenhar se mais próxima que a parede ou jogador apertando V
         if door_dist is not None and (door_dist < safe_dist or see_through):
             door_color = (200, 150, 0)
             ratio = 1 - (1 / (door_dist + 1))
@@ -122,8 +120,6 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
             wall_char = _char_for_color(wall_color)
             for row in range(y_start // CHAR_H, y_end // CHAR_H + 1):
                 _blit_cached_char(screen, font, wall_char, wall_color, cx, row, CHAR_W, CHAR_H)
-
-        # cubículos continuam iguais
         if cubicle_hit is not None:
             c_dist, _, _ = cubicle_hit
             safe_dist_c = c_dist if c_dist != 0 else 1e-6
@@ -145,7 +141,7 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
                     continue
                 _blit_cached_char(screen, font, cubicle_char, color, cx, row, CHAR_W, CHAR_H)
 
-            # escreve "CUBICLE" uma vez
+            # escreve "CUBICLE" na faixa dos cubiculos
             if cx % 7 == 0:
                 text = "CUBICLE"
                 text_surf = font.render(text, True, constants.CUBICLE_LINE)
@@ -238,7 +234,7 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
             if wall_dist < item_dist:
                 continue
 
-        # posição horizontal na tela
+        # pos horizontal na tela
         item_screen_x = int((width / 2) * (1 + transform_x / transform_y))
         center_cx = max(0, min(cols - 1, item_screen_x // CHAR_W))
 
@@ -246,7 +242,7 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
         scale = 0.2 / item_dist
         item_size_px = max(CHAR_H, min(int(height * scale), CHAR_H * 2))
 
-        # --- posição vertical corrigida: projeta como sprite, mas com offset para o chão ---
+        # --- pos vertical corrigida: projeta como sprite, mas com offset para o chao ---
         sprite_screen_y = int((height / 2) + (height / transform_y) * 0.25)
 
         top_py = sprite_screen_y - item_size_px
@@ -263,7 +259,6 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
                     _blit_cached_char(screen, font, ch, color, cy, ry, CHAR_W, CHAR_H)
 
 
-# ---------- fim do bloco ASCII ----------
 def run_along_ray(start, ray_dir, grid_dict):
     INF = float("inf")
 
@@ -286,7 +281,7 @@ def run_along_ray(start, ray_dir, grid_dict):
         step_y = 1
         side_dist_y = (int_map_y + 1.0 - start.y) * delta_dist_y
 
-    cubicle_hit = None  # salva primeira colisão de cubículo
+    cubicle_hit = None
 
     max_iter = 200
     while max_iter > 0:
@@ -303,11 +298,10 @@ def run_along_ray(start, ray_dir, grid_dict):
         element = grid_dict.get((int_map_x, int_map_y), -1)
 
         if element == 2 and cubicle_hit is None:
-            # salva cubículo mas continua andando
             dist = side_dist_x - delta_dist_x if side == 0 else side_dist_y - delta_dist_y
             cubicle_hit = (dist, side, 2)
 
-        if element == 1:  # parede sólida → para
+        if element == 1: 
             dist = side_dist_x - delta_dist_x if side == 0 else side_dist_y - delta_dist_y
             return dist, side, 1, cubicle_hit
 

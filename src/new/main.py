@@ -13,14 +13,43 @@ from utils import player_collides_enemy, find_free_position_with_exit
 import assets.initial_menu as initial_menu
 import json
 import os
-
 level = 0
 def main() -> None:
     global level
     pg.init()
+    pg.mixer.init()
+
+
     width, height = constants.SIZE
     font = pg.font.SysFont("Courier New", 23)
     worldfont = pg.font.SysFont("Courier New", 15)
+
+    if os.name == "nt":  # se for windows para mitigar "erro" de scaling de computador
+        footstep_sound = pg.mixer.Sound("src/new/assets/audio/footstep.wav")
+        terminalbg = pg.mixer.Sound("src/new/assets/audio/terminalbg.wav")
+        terminalmsg = pg.mixer.Sound("src/new/assets/audio/terminalmsg.wav")
+
+        try:
+            import ctypes
+            ctypes.windll.user32.SetProcessDPIAware()
+            user32 = ctypes.windll.user32
+            user32.SetProcessDPIAware()
+            width = user32.GetSystemMetrics(0)
+            height = user32.GetSystemMetrics(1)
+        except Exception:
+            info = pg.display.Info()
+            width, height = info.current_w, info.current_h
+    else:
+        info = pg.display.Info()
+        footstep_sound = pg.mixer.Sound("audio/footstep.wav")
+        terminalbg = pg.mixer.Sound("audio/terminalbg.wav")
+        terminalmsg = pg.mixer.Sound("audio/terminalmsg.wav")
+
+    terminalbg.set_volume(0.1)
+    footstep_sound.set_volume(0.3)
+    terminalmsg.set_volume(0.3)
+
+    terminalbg_channel = pg.mixer.Channel(1)
     screen = pg.display.set_mode((width, height))
     clock = pg.time.Clock()
     half_w, half_h = width // 2, height // 2
@@ -29,6 +58,10 @@ def main() -> None:
     terminal = game_objects.Terminal(font, width, height, level, "player", "terminal")
     menu = game_objects.TerminalMenu(terminal)
     running = True
+
+    if not terminalbg_channel.get_busy():
+        terminalbg_channel.play(terminalbg, loops=-1)
+
 
     while running and menu.active:
         events = pg.event.get()
@@ -43,11 +76,13 @@ def main() -> None:
         screen.fill((0,0,0))
         menu.draw(screen)
         pg.display.flip()
+    if terminalbg_channel.get_busy():
+        terminalbg_channel.stop()
 
     if not running:
-        return  # usuário fechou a janela
+        return 
 
-    # ---------------- Inicializa jogador ----------------
+    # ---------------- inicializa jogador ----------------
     player_name = menu.player_name
     terminal_name = menu.terminal_name
 
@@ -67,7 +102,19 @@ def main() -> None:
     terminal.terminal_name = terminal_name
     terminal.update_prompt()
 
-    # ---------------- Função para gerar níveis ----------------
+    # ----- NOVO: determinar qual é o slot "ativo" (current_slot) -----
+    current_slot = getattr(menu, "selected_slot", None)
+    if current_slot is None:
+        # tenta achar por comparação com player/terminal names (útil quando new game foi criado)
+        saves = initial_menu.load_all_saves()
+        for key, data in saves.items():
+            cfg = data.get("config", {})
+            if cfg.get("playerName") == terminal.username and cfg.get("terminalName") == terminal.terminal_name:
+                current_slot = key
+                break
+    # ----------------------------------------------------------------
+
+    # ---------------- func para gerar levels ----------------
     def generate_level():
         global level
         GRID = grid_starter.start_grid()
@@ -91,22 +138,30 @@ def main() -> None:
     see_through = False
     exit_pos = None
 
-    # ---------------- Loop do jogo ----------------
+    # ---------------- loop do jogo ----------------
     while running:
         dt = clock.tick(constants.FPS)/1000.0
         if player.update_buffs(dt):
             terminal.messages.append("WARN: buff ended")
-        running, events, tab_pressed, see_through, blocked= handle_events(black_screen, tab_pressed, running, player, enemies, see_through)
+        running, events, tab_pressed, see_through, blocked= handle_events(black_screen, tab_pressed, running, player, enemies, see_through, dt, footstep_sound)
         if not running:
             break
         
         if tab_pressed or black_screen:
+            # toca o som de terminal
+            if not terminalbg_channel.get_busy():
+                terminalbg_channel.play(terminalbg, loops=-1) 
             screen.fill((0, 0, 0))
             black_screen, collided_enemy = terminal_commands.handle_terminal_commands(
                 screen, enemies, player, terminal, events, dropped_items,
-                black_screen, collided_enemy, grid, level
+                black_screen, collided_enemy, grid, level, terminalmsg
             )
             continue
+        else:
+            if terminalbg_channel.get_busy():
+                terminalbg_channel.stop()
+
+
         
         hit = None
         for enemy in enemies:
@@ -123,22 +178,48 @@ def main() -> None:
                 terminal.messages.append(f"{hit.name} seems unlucky!")
             pg.display.flip()
             continue
-
         all_spared = allspared(enemies)
         if not enemies or all_spared:
-            if(exit_pos == None):
+            if exit_pos is None:
                 exit_pos = dinamic.add_exit_door(grid)
+
             px, py = int(player.x), int(player.y)
             ex, ey = exit_pos
+
             if "you have cleared this level! find the stairs" not in terminal.messages:
                 terminal.messages.append("you have cleared this level! find the stairs")
+
             if abs(px - ex) + abs(py - ey) == 1:
-                GRID, grid, enemies, level = generate_level()
-                level +=1
+                if level >= 50: #creditos
+                    if not terminalbg_channel.get_busy():
+                        terminalbg_channel.play(terminalbg, loops=-1)
+                    pg.mixer.stop()
+
+                    menu = game_objects.show_terminal_credits(
+                        screen, terminal, clock, font, save_slot=current_slot
+                    )
+                    while menu.active:
+                        events = pg.event.get()
+                        for event in events:
+                            if event.type == pg.QUIT:
+                                menu.active = False
+                            elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+                                menu.active = False
+                            menu.handle_event(event)
+
+                        screen.fill((0, 0, 0))
+                        menu.draw(screen)
+                        pg.display.flip()
+                        clock.tick(30)
+
+
+                    return
+                terminal.messages.clear()
+                level += 1
+                GRID, grid, enemies, _ = generate_level()
                 dropped_items = []
                 player.x, player.y = 3, 10
                 save_new_level(terminal, player)
-                
 
         rendering.clear_screen(screen)
         rendering.draw_floor_and_ceiling_ascii(screen, background_surface)
@@ -153,6 +234,7 @@ def main() -> None:
 
         pg.display.flip()
 
+
 def allspared(enemies):
         if not enemies:
             return True
@@ -166,7 +248,7 @@ def save_new_level(terminal, player):
             slot = key
             break
 
-    # se não achar, cria um slot novo
+    # se n achar, cria um slot novo
     if slot is None:
         slot = initial_menu.get_next_slot()
 
@@ -211,20 +293,19 @@ def build_player_from_data(raw_data: dict) -> tuple[game_objects.Player, int]:
     """Reconstrói Player a partir de um dict cru vindo do save"""
     player = game_objects.Player((3, 10))
 
-    # aplica atributos simples e dinâmicos
     for attr, val in raw_data.get("playerData", {}).items():
         if hasattr(player, attr):
             setattr(player, attr, val)
         else:
-            # cria dinamicamente (ex: slots de prótese)
+            # cria dinamicamente (ex: slots de protese)
             setattr(player, attr, val)
 
-    # aplica inventário e próteses
+    # aplica inv e protese
     items = raw_data.get("itemsData", {})
     player.prostheses = items.get("prostheses", [])
     player.inventory = items.get("inventory", {})
 
-    # nível inicial (se não existir, assume 1)
+    # lv inicial (se n existir, assume 1)
     level_data = raw_data.get("levelData", {})
     level = level_data.get("level", 1)
 

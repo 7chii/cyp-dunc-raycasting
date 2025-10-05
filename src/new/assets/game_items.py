@@ -22,7 +22,7 @@ item_companies_values= {
     "wyutani":7,
     "generic":1
 }
-#Adjacent processing unit
+#Adjacent processing unit (APU)
 equipable_prosthetics = ("arm", "leg", "eye", "skin", "apu")
 equipable_prosthetics_data = {
     "arm":{"nt":1}, #mais um turno para o jogador a cada braco instalado

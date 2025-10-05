@@ -12,7 +12,7 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
     0 = espaço livre
     1 = parede
     """
-    # Passo 1: gerar grid com paredes
+    # gerar grid com paredes
     grid = []
     for y in range(height):
         row = []
@@ -23,11 +23,11 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
                 if random.random() < wall_chance:
                     row.append(1)
                 else:
-                    # 5% de chance de virar cubículo, senão espaço livre
+                    # 5% de chance de virar cubículo, sen espaço livre
                     row.append(2 if random.random() < cubicle_chance else 0)
         grid.append(row)
 
-    # Passo 2: função para achar componentes conectados
+    #func para achar componentes conectados
     def bfs(start):
         q = deque([start])
         visited = {start}
@@ -41,7 +41,7 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
                         q.append((nx, ny))
         return visited
 
-    # Passo 3: encontrar todas as regiões de espaços livres
+    #  encontrar todos os espaços livres
     all_regions = []
     seen = set()
     for y in range(height):
@@ -51,21 +51,21 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
                 all_regions.append(region)
                 seen |= region
 
-    # Se só existe uma região, já está conectado
+    # Se so um espaco livre
     if len(all_regions) <= 1:
         return grid
 
-    # Passo 4: manter a maior região como principal
+    #  manter o maior espaco como principal
     main_region = max(all_regions, key=len)
     other_regions = [r for r in all_regions if r != main_region]
 
-    # Passo 5: conectar regiões menores à maior
+    # conectar espacos menores a maiores
     for region in other_regions:
-        # escolhe um ponto da região atual e um da região principal
+        # escolhe um ponto da sala atual e um do espaco principal
         rx, ry = random.choice(list(region))
         mx, my = random.choice(list(main_region))
 
-        # faz um "túnel reto" até conectar
+        # faz um caminho ate conectar
         cx, cy = rx, ry
         while (cx, cy) != (mx, my):
             if cx < mx: cx += 1
@@ -74,7 +74,7 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
             elif cy > my: cy -= 1
             grid[cy][cx] = 0  # abre caminho
 
-        # atualiza a região principal
+        # atualiza a sala principal
         main_region |= region
     return grid
 
@@ -116,10 +116,10 @@ def add_exit_door(grid_dict):
 
 def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
     """
-    Gera inimigos distribuídos pelo mapa.
-    - Progressão de símbolos, dano e HP até o nível 50.
-    - Se o level for múltiplo de 5: cria apenas 1 boss.
-    - Caso contrário: gera inimigos normais distribuídos.
+    Gera inimigos pelo mapa.
+    - Progressão de símbolos, dano e HP ate o lv 50.
+    - Se o level for mult de 5: cria apenas 1 boss.
+    - Caso contrario: gera inimigos normais distribuídos.
     """
     enemies = []
     free_positions = [pos for pos, val in grid_dict.items() if val == 0]
@@ -145,7 +145,6 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         if level >= 40:
             min_grades = 4
 
-        # garante que max_grades >= min_grades
         if max_grades < min_grades:
             max_grades = min_grades
 
@@ -156,8 +155,8 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         grade_symbols = "-".join(random.choices(game_items.grades, k=num_grades))
         boss_name = f"{boss_name}-{grade_symbols}"
 
-        # HP base escalado com o nível + extra por símbolos
-        boss_hp_base = int(50 + level**1.8)  # crescimento rápido, mas controlado
+        
+        boss_hp_base = int(50 + level**1.8) 
         boss_hp = boss_hp_base + num_grades * 100 
         chosen = random.choice(game_items.equipable_items_hand)
         boss_weapon = item_dinamic.generate_weapon(chosen, level)
@@ -166,21 +165,20 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
 
         boss = game_objects.Enemy((x + 0.5, y + 0.5), boss_chance, name=boss_name, hp=boss_hp, weapon=boss_weapon, is_boss=True)
         boss.is_boss = True
-        num_prostheses = random.randint(1, min(3, level // 15 + 1))  # até 3 próteses no lvl 45+
+        num_prostheses = random.randint(1, min(3, level // 15 + 1))  
         for _ in range(num_prostheses):
             prost_type = random.choice(game_items.equipable_prosthetics)
             prosthetic = item_dinamic.generate_prosthetic(prost_type, level)
             boss.install_prosthetic(prosthetic)
 
 
-        # Progressão de dano extra: até +8 por símbolo no final
         damage_per_symbol = min(2 + level // 10, 8)
         boss.extra_damage = num_grades * damage_per_symbol
 
         enemies.append(boss)
         return enemies
 
-    # -------- Normal Enemies --------
+    # -------- inimigos nomrais --------
     for i in range(num_enemies):
         if not free_positions:
             break  
@@ -193,7 +191,6 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
             if abs(p[0]-x) > min_distance or abs(p[1]-y) > min_distance
         ]
 
-        # HP base escalado com nível
 
         chosen = random.choice(game_items.equipable_items_hand)
         weapon = item_dinamic.generate_weapon(chosen, level)
@@ -205,7 +202,6 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
 
         base_name = f"{seniority}-{position}-{job}-{i}"
 
-        # Progressão de símbolos: até 4 no nível 50
         max_grades = min(level // 15, 4)
         min_grades = 0
         symbolVal = 1
@@ -235,19 +231,17 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
 
 
 
-        # HP extra por símbolo
-        hp_base = 5 + level * 3  # nível 1 -> 8 HP, nível 2 -> 11 HP
-        # pequeno bônus aleatório
-        hp_base += random.randint(0, 3)  # variação leve
-        # bônus por símbolos
-        hp = hp_base + num_grades * symbolVal # cada símbolo adiciona +5 HP
+        hp_base = 5 + level * 3 
+        hp_base += random.randint(0, 3)
+
+        hp = hp_base + num_grades * symbolVal
 
         enemy = game_objects.Enemy((x + 0.5, y + 0.5), chance, name=name, hp=hp, weapon=weapon)
-        # Dano extra progressivo
+
         damage_per_symbol = min(1 + level // 12, 5)
         enemy.extra_damage = num_grades * damage_per_symbol
         enemy.parse_grades()
-        num_prostheses = random.randint(0, min(3, level // 15 + 1))  # até 3 próteses no lvl 45+
+        num_prostheses = random.randint(0, min(3, level // 15 + 1)) 
         for _ in range(num_prostheses):
             prost_type = random.choice(game_items.equipable_prosthetics)
             prosthetic = item_dinamic.generate_prosthetic(prost_type, level)

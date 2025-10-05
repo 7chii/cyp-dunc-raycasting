@@ -3,18 +3,14 @@
 -> add musica
 -> add "now playing:" e nome da musica, caso musica turnoff "there is no sound."
 -> opcao de turnoff musica ou audio-effects
--> add audio effects
--> add apagamento de saves
+
+-> add apagamento de saves ok/2 ao terminar jogo
+
+-> add cafeterias (andares de pausa e compra de itens/proteses/etc)
+-> add dinheiro
+-> add lojas as cafeterias
 
 -> add antivirus to enemies ( hacking resist )
--> dano de hacking ok
-
--> add grades nos itens (fix balanceamento)
--> add efeitos nos itens (dim chance de stun, dim chance de unequip, dim tempo de hack, extra turns,
-quantos objetos sao visiveis no scan)
-
--> remover da lista de palavras pra tab o nome do inimigo depois de spared ou rm
-
 -> add mais itens
 -> add status effects ok/2
 -> add autocomplete no terminal do menu
@@ -27,7 +23,16 @@ quantos objetos sao visiveis no scan)
 
 -> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
-
+-> dano de hacking ok
+-> add grades nos itens (fix balanceamento) ok
+-> add efeitos nos itens (dim chance de stun, dim chance de unequip, dim tempo de hack, extra turns,
+quantos objetos sao visiveis no scan) ok
+-> remover da lista de palavras pra tab o nome do inimigo depois de spared ou rm ok
+-> add audio effects ok
+    -> add passos ok
+    -> add som terminal ok 
+    -> add som de comando/msg ok 
+-> add seta para cima para pegar comandos anteriores ok 
 -> add proteses nos inimigos ok
 -> fix salvar ( nao esta pegando itens equipados em proteses) ok
 -> fix unequip em proteses ok

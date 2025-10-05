@@ -7,7 +7,7 @@ def start_grid():
     return GRID
      
 
-assert all(len(GRID) == len(row) for row in GRID), "Grid should be square!"
+assert all(len(GRID) == len(row) for row in GRID), "deve ser quadrada!"
 for row in GRID:
     for val in row:
-        assert isinstance(val, int), "Non integer element in grid!"
+        assert isinstance(val, int), "grid com valores nao int!"
