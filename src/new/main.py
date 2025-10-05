@@ -41,9 +41,9 @@ def main() -> None:
             width, height = info.current_w, info.current_h
     else:
         info = pg.display.Info()
-        footstep_sound = pg.mixer.Sound("audio/footstep.wav")
-        terminalbg = pg.mixer.Sound("audio/terminalbg.wav")
-        terminalmsg = pg.mixer.Sound("audio/terminalmsg.wav")
+        footstep_sound = pg.mixer.Sound("assets/audio/footstep.wav")
+        terminalbg = pg.mixer.Sound("assets/audio/terminalbg.wav")
+        terminalmsg = pg.mixer.Sound("assets/audio/terminalmsg.wav")
 
     terminalbg.set_volume(0.1)
     footstep_sound.set_volume(0.3)
