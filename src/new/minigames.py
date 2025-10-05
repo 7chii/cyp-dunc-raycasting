@@ -16,7 +16,7 @@ def run_space_invaders_minigame(screen, terminal, time_off):
     if(duration < 0):
         duration = 0.5
     player_pos = hack_width // 2
-    player_line_idx = hack_height - 1  # linha final do jogador
+    player_line_idx = hack_height - 1 
 
     enemy_spawn_interval = 0.8
     enemy_speed = 2.0  # linhas por segundo
@@ -48,19 +48,19 @@ def run_space_invaders_minigame(screen, terminal, time_off):
                 pg.quit()
                 exit()
 
-        # Movimento jogador
+        # mov jogador
         pressed = pg.key.get_pressed()
         if pressed[pg.K_LEFT]:
             player_pos = max(0, player_pos - dt * 30)
         if pressed[pg.K_RIGHT]:
             player_pos = min(hack_width - 1, player_pos + dt * 30)
 
-        # Atirar
+        # atirar
         if pressed[pg.K_SPACE] and not space_pressed_last_frame:
             bullets.append([player_pos, float(player_line_idx - 1)])
         space_pressed_last_frame = pressed[pg.K_SPACE]
 
-        # Spawn inimigos
+        # spawn inimigos
         if current_time - last_enemy_spawn > enemy_spawn_interval:
             max_enemies_per_wave = 6
             positions = list(range(0, hack_width, 3))
@@ -70,14 +70,14 @@ def run_space_invaders_minigame(screen, terminal, time_off):
                 enemies.append([float(x), 0.0])
             last_enemy_spawn = current_time
 
-        # Move inimigos
+        # mover inimigos
         for enemy in enemies:
             enemy[1] += enemy_speed * dt
 
-        # Atualiza balas
+        # update balas
         bullets = [[b[0], b[1] - bullet_speed * dt] for b in bullets if b[1] - bullet_speed * dt >= 0]
 
-        # Colisão bala x inimigo
+        # colisao bala x inimigo
         enemies_to_remove = set()
         new_bullets = []
         for b in bullets:
@@ -93,17 +93,17 @@ def run_space_invaders_minigame(screen, terminal, time_off):
         bullets = new_bullets
         enemies = [e for idx, e in enumerate(enemies) if idx not in enemies_to_remove]
 
-        # Verifica derrota
+        # verif derrota
         player_hit = any(e[1] >= player_line_idx for e in enemies)
         if player_hit:
             return False
 
-        # --- Desenhar ---
+        # --- desenhar ---
         screen.fill((0, 0, 0))
         y = 20
         line_height = terminal.font.get_height() + 5
 
-        # Mensagens
+        # msg
         for msg in messages_backup[-5:]:
             rendered = terminal.font.render(msg, True, (0, 255, 0))
             screen.blit(rendered, (20, y))
@@ -113,13 +113,13 @@ def run_space_invaders_minigame(screen, terminal, time_off):
         cell_h = line_height
         y_offset = y
 
-        # Desenhar inimigos
+        # desenhar inimigos
         for ex, ey in enemies:
             ex_px = 20 + ex * cell_w
             ey_px = y_offset + ey * cell_h
             screen.blit(terminal.font.render('T', True, (0, 255, 0)), (ex_px, ey_px))
 
-        # Desenhar balas
+        # desenhar balas
         for bx, by in bullets:
             bx_px = 20 + bx * cell_w
             by_px = y_offset + by * cell_h
@@ -163,24 +163,23 @@ def run_hack_minigame(screen, terminal, time_off):
         if elapsed > duration:
             return True
 
-        # Eventos
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 pg.quit()
                 exit()
 
-        # Movimento jogador
+        # mov jogador
         pressed = pg.key.get_pressed()
         if pressed[pg.K_LEFT] and player_pos > 0:
             player_pos -= 0.3
         if pressed[pg.K_RIGHT] and player_pos < hack_width - 1:
             player_pos += 0.3
 
-        # Gerar obstáculos
+        # Gerar parede
         if current_time - last_obstacle_time > obstacle_interval:
             lines.pop(0)
             
-            # Chance aleatória de diminuir o caminho
+            # Chance random de diminuir o caminho
             if path_width == 8 and random.random() < 0.2:  # 20% de chance de reduzir
                 path_width = 6
 
@@ -205,18 +204,17 @@ def run_hack_minigame(screen, terminal, time_off):
             screen.blit(rendered, (20, y))
             y += line_height
 
-        # Tamanho célula
         cell_w = terminal.font.size(' ')[0]
         cell_h = line_height
 
-        # Desenhar obstáculos
+        # Desenhar paredes
         for row_idx, row in enumerate(lines):
             for col_idx, char in enumerate(row):
                 if char == '#':
                     obstacle_render = terminal.font.render('#', True, (0, 255, 0))
                     screen.blit(obstacle_render, (20 + col_idx * cell_w, y + row_idx * cell_h))
 
-        # Jogador separado
+        # player separado
         player_rect = pg.Rect(
             20 + player_pos * cell_w,
             y + player_line_idx * cell_h,
@@ -225,7 +223,7 @@ def run_hack_minigame(screen, terminal, time_off):
         player_render = terminal.font.render('@', True, (0, 255, 0))
         screen.blit(player_render, player_rect.topleft)
 
-        # Colisão jogador x obstáculos
+        # colisao jogador x parede
         for col, char in enumerate(lines[player_line_idx]):
             if char == '#':
                 obstacle_rect = pg.Rect(

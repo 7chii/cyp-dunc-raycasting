@@ -30,9 +30,7 @@ def is_below(a, b) -> bool:
 
 def is_in(val, lower, upper, inclusive=True) -> bool:
     if inclusive:
-        # lower <= val <= upper
         return is_above_or_eq(val, lower) and is_below_or_eq(val, upper)
-    # lower < val < upper
     return is_above(val, lower) and is_below(val, upper)
 
 

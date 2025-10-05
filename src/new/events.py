@@ -12,7 +12,6 @@ def handle_events(blocked, tab_pressed, running, player, enemies, see_through, d
                 running = False
             elif event.key == pg.K_LCTRL:
                 tab_pressed = not tab_pressed
-                # não inverte blocked aqui, apenas reflete o terminal aberto
                 blocked = tab_pressed
             elif event.key == pg.K_v:
                 see_through = True
