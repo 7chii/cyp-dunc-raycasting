@@ -1,4 +1,3 @@
-import constmath.constants as constants
 import dinamic.dinamic as dinamic
 
 GRID = ()

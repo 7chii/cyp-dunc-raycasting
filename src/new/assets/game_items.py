@@ -34,9 +34,8 @@ equipable_prosthetics_data = {
 
 boss_names = ("reeve", "patrick", "tristram", "preston", "adam", "ed")
 boss_surnames = ("bateman", "gildenberg", "smith", "hayes", "smasher")
-#grades = ("+", "s", "op", "*")
+
 grades = ("ω", "σ", "α", "β")
-#grades = ("Ω", "Σ", "α", "β")
 
 enemy_seniority = ("junior", "midlevel", "senior")
 enemy_position = ("hr_defense", "medical_defense", "corporate_defense")
