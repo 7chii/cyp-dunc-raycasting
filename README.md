@@ -80,5 +80,3 @@ Programming: Mariana Pacheco, Tiago Daumas Vanni
 Design & Narrative: Mariana Pacheco, Tiago Daumas Vanni
 
 Game Planning & Documentation: Tiago Daumas Vanni
-
-Special Thanks: Todos os jogadores que sobreviveram ao terminal.
