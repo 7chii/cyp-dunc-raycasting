@@ -2,6 +2,7 @@ import constmath.constants as constants
 import pygame as pg
 import constmath.functions as functions
 import constmath.numerical as numerical
+import assets.game_items as game_items
 
 ASCII_CHARS = constants.ASCII_CHARS
 _char_surface_cache = {}
@@ -54,8 +55,15 @@ def pre_render_background(font, width, height):
 def draw_floor_and_ceiling_ascii(screen, background_surface):
     """Copia o fundo pre-renderizado."""
     screen.blit(background_surface, (0,0))
-
 def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, font, step=1, see_through=False):
+    SHOP_COLORS = {
+        4: constants.PROSTBUY,    # loja tipo A
+        5: constants.CAFETERIA,   # loja tipo B
+        6: constants.MILBAY,      # loja tipo C
+    }
+
+    SHOP_NAMES = game_items.SHOP_NAMES
+
     CHAR_W, CHAR_H = font.size("A")
     cols = width // CHAR_W
     half_h = height // 2
@@ -66,28 +74,18 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
         ray = constants.Point2(direction.x + plane.x * camera_x,
                                direction.y + plane.y * camera_x)
 
-        # percorre o raio e retorna parede e cubiculo
-        dist, side, element, cubicle_hit = run_along_ray(origin, ray, grid_dict)
-
+        dist, side, element, cubicle_hit, shop_hit = run_along_ray(origin, ray, grid_dict)
         if side == -1:
             continue
 
-        # --- detectar porta ---
-        # percorre o mesmo raio e pega a primeira porta (valor 3)
-        door_dist, _, _ = None, None, None
-        for step_dist in range(1, 50):  # checar ate 50 unidades a frente
+        # detectar porta
+        door_dist = None
+        for step_dist in range(1, 50):
             check_x = int(origin.x + ray.x * step_dist)
             check_y = int(origin.y + ray.y * step_dist)
             if grid_dict.get((check_x, check_y), 0) == 3:
                 door_dist = step_dist
                 break
-
-        # decide o que desenhar primeiro
-        wall_color = None
-        line_height = None
-        y_start = None
-        y_end = None
-        wall_char = None
 
         safe_dist = dist if dist != 0 else 1e-6
         line_height = height / (safe_dist * 2)
@@ -95,6 +93,7 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
         y_end = min(height - 1, int(half_h + line_height / 2))
 
         # parede normal
+        wall_color = None
         if element == 1:
             wall_color = constants.WALL
             ratio = 1 - (1 / (safe_dist + 1))
@@ -102,24 +101,44 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
                 wall_color = functions.darken_rgb(wall_color, 50)
             wall_color = functions.darken_rgb(wall_color, ratio * 150)
 
-        # porta: desenhar se mais próxima que a parede ou jogador apertando V
-        if door_dist is not None and (door_dist < safe_dist or see_through):
-            door_color = (200, 150, 0)
-            ratio = 1 - (1 / (door_dist + 1))
-            door_color = functions.darken_rgb(door_color, ratio * 50)
-            door_line_height = height / (door_dist * 2)
-            door_y_start = max(0, int(half_h - door_line_height / 2))
-            door_y_end = min(height - 1, int(half_h + door_line_height / 2))
-            door_char = _char_for_color(door_color)
-
-            for row in range(door_y_start // CHAR_H, door_y_end // CHAR_H + 1):
-                _blit_cached_char(screen, font, door_char, door_color, cx, row, CHAR_W, CHAR_H)
-
         # desenha parede
         if wall_color:
             wall_char = _char_for_color(wall_color)
             for row in range(y_start // CHAR_H, y_end // CHAR_H + 1):
                 _blit_cached_char(screen, font, wall_char, wall_color, cx, row, CHAR_W, CHAR_H)
+
+        # desenha cubículos ou lojas
+        if shop_hit is not None:
+            shop_dist, side, shop_type = shop_hit
+            color = SHOP_COLORS.get(shop_type, constants.CUBICLE)
+            name = SHOP_NAMES.get(shop_type, "CUBICLE")
+
+            ratio = 1 - (1 / (shop_dist + 1))
+            color = functions.darken_rgb(color, ratio * 120)
+
+            cubicle_height = height / (shop_dist * 4)
+            y_start_c = max(0, int(half_h - cubicle_height / 2))
+            y_end_c = min(height - 1, int(half_h + cubicle_height / 2))
+
+            cubicle_char = _char_for_color(color)
+            start_row = y_start_c // CHAR_H
+            end_row = y_end_c // CHAR_H
+            text_row = (start_row + end_row) // 2
+
+            for row in range(start_row, end_row + 1):
+                if row == text_row:
+                    continue
+                _blit_cached_char(screen, font, cubicle_char, color, cx, row, CHAR_W, CHAR_H)
+
+            # escreve nome no meio
+            if cx % 9 == 0:
+                text = name
+                text_surf = font.render(text, True, constants.CUBICLE_LINE)
+                text_rect = text_surf.get_rect()
+                text_rect.centery = text_row * CHAR_H + CHAR_H // 2
+                text_rect.centerx = cx * CHAR_W + (7 * CHAR_W) // 2
+                screen.blit(text_surf, text_rect)
+
         if cubicle_hit is not None:
             c_dist, _, _ = cubicle_hit
             safe_dist_c = c_dist if c_dist != 0 else 1e-6
@@ -151,60 +170,59 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
                 screen.blit(text_surf, text_rect)
 
 
-
-
 def draw_enemies_ascii(screen, player, enemies, grid_dict, width, height, font, see_through_walls=False):
     CHAR_W, CHAR_H = font.size("A")
     cols = width // CHAR_W
     rows = height // CHAR_H
     half_h = height // 2
+    if enemies:
 
-    enemies_sorted = sorted(
-        enemies, 
-        key=lambda e: (e.x - player.x) ** 2 + (e.y - player.y) ** 2, 
-        reverse=True
+        enemies_sorted = sorted(
+            enemies, 
+            key=lambda e: (e.x - player.x) ** 2 + (e.y - player.y) ** 2, 
+            reverse=True
     )
+        
+        for enemy in enemies_sorted:
+            rel_x = enemy.x - player.x
+            rel_y = enemy.y - player.y
 
-    for enemy in enemies_sorted:
-        rel_x = enemy.x - player.x
-        rel_y = enemy.y - player.y
+            inv_det = 1.0 / (player.plane.x * player.direction.y - player.direction.x * player.plane.y)
+            transform_x = inv_det * (player.direction.y * rel_x - player.direction.x * rel_y)
+            transform_y = inv_det * (-player.plane.y * rel_x + player.plane.x * rel_y)
 
-        inv_det = 1.0 / (player.plane.x * player.direction.y - player.direction.x * player.plane.y)
-        transform_x = inv_det * (player.direction.y * rel_x - player.direction.x * rel_y)
-        transform_y = inv_det * (-player.plane.y * rel_x + player.plane.x * rel_y)
-
-        if transform_y <= 0:
-            continue
-
-        enemy_dist = (rel_x**2 + rel_y**2) ** 0.5
-        if not see_through_walls:
-            ray_dir = constants.Point2(rel_x / enemy_dist, rel_y / enemy_dist)
-            wall_dist, _, _, _= run_along_ray(player.xy, ray_dir, grid_dict)
-            if wall_dist < enemy_dist:
+            if transform_y <= 0:
                 continue
 
-        enemy_screen_x = int((width / 2) * (1 + transform_x / transform_y))
-        scale = enemy.size / enemy_dist if enemy_dist > 0 else enemy.size
-        enemy_height_px = min(int(height * scale), min(width, height) // 2)
-        enemy_width_px = enemy_height_px
+            enemy_dist = (rel_x**2 + rel_y**2) ** 0.5
+            if not see_through_walls:
+                ray_dir = constants.Point2(rel_x / enemy_dist, rel_y / enemy_dist)
+                wall_dist, _, _, _, _= run_along_ray(player.xy, ray_dir, grid_dict)
+                if wall_dist < enemy_dist:
+                    continue
 
-        center_cx = max(0, min(cols - 1, enemy_screen_x // CHAR_W))
-        half_width_cx = max(1, enemy_width_px // (2 * CHAR_W))
+            enemy_screen_x = int((width / 2) * (1 + transform_x / transform_y))
+            scale = enemy.size / enemy_dist if enemy_dist > 0 else enemy.size
+            enemy_height_px = min(int(height * scale), min(width, height) // 2)
+            enemy_width_px = enemy_height_px
 
-        left_cx = max(0, center_cx - half_width_cx)
-        right_cx = min(cols - 1, center_cx + half_width_cx)
+            center_cx = max(0, min(cols - 1, enemy_screen_x // CHAR_W))
+            half_width_cx = max(1, enemy_width_px // (2 * CHAR_W))
 
-        top_py = half_h - enemy_height_px // 2
-        bottom_py = half_h + enemy_height_px // 2
-        top_row = max(0, top_py // CHAR_H)
-        bottom_row = min(rows - 1, bottom_py // CHAR_H)
+            left_cx = max(0, center_cx - half_width_cx)
+            right_cx = min(cols - 1, center_cx + half_width_cx)
 
-        ch = _char_for_color(enemy.color)
-        color = constants.BOSS if enemy.is_boss else enemy.color
+            top_py = half_h - enemy_height_px // 2
+            bottom_py = half_h + enemy_height_px // 2
+            top_row = max(0, top_py // CHAR_H)
+            bottom_row = min(rows - 1, bottom_py // CHAR_H)
 
-        for cy in range(left_cx, right_cx + 1):
-            for ry in range(top_row, bottom_row + 1):
-                _blit_cached_char(screen, font, ch, color, cy, ry, CHAR_W, CHAR_H)
+            ch = _char_for_color(enemy.color)
+            color = constants.BOSS if enemy.is_boss else enemy.color
+
+            for cy in range(left_cx, right_cx + 1):
+                for ry in range(top_row, bottom_row + 1):
+                    _blit_cached_char(screen, font, ch, color, cy, ry, CHAR_W, CHAR_H)
 
 def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, font, see_through_walls=False):
     CHAR_W, CHAR_H = font.size("A")
@@ -230,7 +248,7 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
         item_dist = (rel_x**2 + rel_y**2) ** 0.5
         if not see_through_walls:
             ray_dir = constants.Point2(rel_x / item_dist, rel_y / item_dist)
-            wall_dist, _, _, _ = run_along_ray(player.xy, ray_dir, grid_dict)
+            wall_dist, _, _, _, _ = run_along_ray(player.xy, ray_dir, grid_dict)
             if wall_dist < item_dist:
                 continue
 
@@ -258,7 +276,6 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
                 for ry in range(top_row, bottom_row + 1):
                     _blit_cached_char(screen, font, ch, color, cy, ry, CHAR_W, CHAR_H)
 
-
 def run_along_ray(start, ray_dir, grid_dict):
     INF = float("inf")
 
@@ -282,8 +299,8 @@ def run_along_ray(start, ray_dir, grid_dict):
         side_dist_y = (int_map_y + 1.0 - start.y) * delta_dist_y
 
     cubicle_hit = None
-
     max_iter = 200
+
     while max_iter > 0:
         max_iter -= 1
         if side_dist_x < side_dist_y:
@@ -297,15 +314,21 @@ def run_along_ray(start, ray_dir, grid_dict):
 
         element = grid_dict.get((int_map_x, int_map_y), -1)
 
-        if element == 2 and cubicle_hit is None:
+        if element in (4, 5, 6):  # lojas
             dist = side_dist_x - delta_dist_x if side == 0 else side_dist_y - delta_dist_y
-            cubicle_hit = (dist, side, 2)
+            shop_hit = (dist, side, element)  # <-- tupla
+            return dist, side, element, cubicle_hit, shop_hit
 
-        if element == 1: 
+        if element == 2:  # cubículos
+            if cubicle_hit is None:
+                dist = side_dist_x - delta_dist_x if side == 0 else side_dist_y - delta_dist_y
+                cubicle_hit = (dist, side, 2)
+
+        if element == 1:  # parede
             dist = side_dist_x - delta_dist_x if side == 0 else side_dist_y - delta_dist_y
-            return dist, side, 1, cubicle_hit
+            return dist, side, element, cubicle_hit, None
 
-    return float("inf"), -1, -1, cubicle_hit
+    return float("inf"), -1, -1, cubicle_hit, None
 
 
 def find_free_position_with_exit(grid_dict, player_pos):

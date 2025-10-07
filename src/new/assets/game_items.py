@@ -44,4 +44,9 @@ enemy_job = ("sergeant", "captain")
 
 
 status_effects = ("Paralysis", "Angry", "Sad", "Anxious")
-
+shop_names = ("PROSTBUY", "CAFETERIA", "MILBAY" )
+SHOP_NAMES = {
+        4: "PROSTBUY",
+        5: "CAFETERIA",
+        6: "MILBAY",
+    }

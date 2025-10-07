@@ -5,6 +5,7 @@ import constmath.constants as constants
 import assets.grid as grid
 import assets.game_items as game_items
 import assets.initial_menu as initial_menu
+import math
 
 class Player: 
     def __init__(self, xy) -> None:
@@ -32,6 +33,7 @@ class Player:
         self.hp = 15
         self.damage_buff = 0   # usado se consumir algo tipo ParteeHard
         self.buff_timer = 0
+        self.kredits = 0
 
 
         # inventario do jogador
@@ -56,6 +58,7 @@ class Player:
             f"Damage Reduction: {self.damage_reduction:.2f} "
             f"Hack Speed Bonus: {self.hack_speed_bonus:.2f}s"
             f"Damage Buff: {self.damage_buff} (timer: {self.buff_timer}) "
+            f"Kredits: ${self.kredits} "
         )
 
     @property
@@ -248,7 +251,6 @@ class Player:
     def move(self, dx=0, dy=0, enemies=None, footstep_sound=None, dt=0) -> None:
         new_x = self.x + dx * constants.STEPSIZE * self.direction.x
         new_y = self.y + dy * constants.STEPSIZE * self.direction.y
-
         if is_walkable(int(new_x), int(new_y)):
             if not enemies or all(
                 (new_x - e.x) ** 2 + (new_y - e.y) ** 2 > 0.01 for e in enemies
@@ -311,6 +313,8 @@ class Player:
                 self.move(move_dir, move_dir, enemies, footstep_sound, dt)
 
 def is_walkable(x, y):
+    x = math.floor(x)
+    y = math.floor(y)
     if 0 <= x < len(grid.GRID) and 0 <= y < len(grid.GRID[0]):
         return grid.GRID[x][y] == 0
     return False
@@ -570,7 +574,8 @@ class Terminal:
                     results.append({"type": "attack", "hand": hand, "target": target})
                 else:
                     results.append({"type": "unknown", "raw": seg})
-
+            
+    
 
             # player -h <enemy>
             elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-h":
@@ -634,6 +639,14 @@ class Terminal:
             # pickup <item>
             elif len(parts) == 2 and parts[0] == "pickup":
                 results.append({"type": "pickup", "item": parts[1].lower()})
+            
+            # <shop name> ls
+            elif len(parts) == 2 and parts[1] == "ls":
+                results.append({"type":"shop_list", "shop":parts[0].lower()})
+
+            # <shop name> buy <item_name>
+            elif len(parts) == 3 and parts[1] == "buy":
+                results.append({"type":"shop_buy", "shop":parts[0].lower(), "item":parts[2].lower()})
 
             # combat runaway
             elif seg.strip() == "combat runaway":
@@ -756,7 +769,8 @@ class TerminalMenu:
                     "hacking_damage":player.hacking_damage,
                     "hp": player.hp,
                     "damage_buff": player.damage_buff,
-                    "buff_timer": player.buff_timer
+                    "buff_timer": player.buff_timer,
+                    "kredits":player.kredits
                 }
 
                 items_data = {
@@ -842,23 +856,16 @@ def remove_keyword(name: str) -> None:
 
 
 def generate_item_keywords(player_inventory, dropped_items):
-    """
-    Gera lista de keywords para autocomplete a partir de:
-    - inv do jogador
-    - Itens dropados
-    - Proteses
-    Inclui prefixos de empresas e sufixos de grades (se existirem).
-    """
 
     global keywords
 
     # empresas
     companies = game_items.item_companies
 
-    # itens equipáveis
+    # armas
     equip_items = game_items.equipable_items_hand
 
-    # itens consumíveis
+    # itens
     usable = game_items.usable_items
     
     prosthetics = game_items.equipable_prosthetics
@@ -884,7 +891,7 @@ def generate_item_keywords(player_inventory, dropped_items):
         # monta nome base
         keyword = f"{company_prefix}-{item_base}" if company_prefix else item_base
 
-        # adiciona se for item válido
+        # adiciona se for item valido
         if item_base in equip_items or item_base in usable or item_base in prosthetics:
             keywords.append(keyword)
 
@@ -893,11 +900,9 @@ def generate_item_keywords(player_inventory, dropped_items):
                 keyword_with_grades = f"{keyword}-{'-'.join(grades)}"
                 keywords.append(keyword_with_grades)
 
-    # ---- inv do jogador ----
     for full_name in player_inventory:
         process_item(full_name)
 
-    # ---- Itens dropados ----
     for _, _, drop_name in dropped_items:
         process_item(drop_name)
     return list(set(keywords))  # remove duplicados
@@ -906,8 +911,12 @@ keywords = [
         "player -a", "player -h", "player -equip", "player -use", "player -scan",
         "player -i ls", "player -e ls", "player status",
         "pickup", "combat runaway", "terminal exit","status", "player -install",
-        "spare", "-rm", "right", "left", "save"
+        "spare", "-rm", "right", "left", "save", "prostbuy", "cafeteria", "milbay", "buy", "ls"
     ]
+
+def add_keyword(str):
+    global keywords
+    keywords.append(str)
 
 def get_key_words(collided_enemy=None):
     global keywords
@@ -924,6 +933,7 @@ def get_key_words(collided_enemy=None):
             keywords.extend(list(game_items.grades))
         if hasattr(game_items, "item_companies"):
             keywords.extend(list(game_items.item_companies))
+            
     except Exception:
         pass
 

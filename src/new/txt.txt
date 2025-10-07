@@ -23,6 +23,12 @@
 
 -> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
+-> add andar de compras ok
+-> add lojas ok
+-> add kredits ok
+-> add inventarios das lojas ok
+-> add geracao dinamica do inventario das empresas ok
+-> add compras de itens dos inventarios das empresas ok
 -> dano de hacking ok
 -> add grades nos itens (fix balanceamento) ok
 -> add efeitos nos itens (dim chance de stun, dim chance de unequip, dim tempo de hack, extra turns,

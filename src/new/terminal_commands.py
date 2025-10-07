@@ -6,8 +6,10 @@ import minigames
 import dinamic.item_dinamic as item_dinamic
 import pygame as pg
 import unicodedata
+from collections import deque
 
-def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level, terminalmsg):
+
+def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level, terminalmsg, touching_shop, shop_name, inventory):
     """
     lida com os comandos do terminal (apertar TAB ou combate) e retorna
     os estados atualizados de black_screen e collided_enemy
@@ -36,6 +38,11 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
         import random
         nonlocal black_screen
         nonlocal collided_enemy
+        nonlocal level
+
+        nonlocal touching_shop
+        nonlocal shop_name
+        nonlocal inventory
         
         def enemy_turn():
             if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
@@ -201,7 +208,12 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             f"ERROR: You can only hack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'none'})!"
                         )
                     enemy_turn()
-                        
+                
+                elif command["type"] == "shop_list":
+                    terminal.messages.append("there are no shops nearby.")
+                elif command["type"] == "shop_buy":
+                    terminal.messages.append("there are no shops nearby.")
+                    #outros shops em combate
                 elif command["type"] == "scan":
                     if collided_enemy and collided_enemy.name == command["target"]:
                         terminal_loading(terminal, screen, label="loading scan")
@@ -419,6 +431,10 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                     drop_name = drop_item['name']
                                     dropped_items.append((collided_enemy.x, collided_enemy.y, drop_name))
                                     terminal.messages.append(f"{collided_enemy.name} also dropped {drop_name}!")
+                            kredits = int(150 * (1 + 0.1 * level))
+                            player.kredits = getattr(player, "kredits", 0) + kredits
+                            terminal.messages.append(f"{collided_enemy.name} dropped {kredits} kredits!")
+
                             game_objects.generate_item_keywords(player.inventory, dropped_items)
                             game_objects.remove_keyword(collided_enemy.name)
                             enemies.remove(collided_enemy)
@@ -457,6 +473,9 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 drop_name = drop_item['name']
                                 dropped_items.append((collided_enemy.x, collided_enemy.y, drop_name))
                                 terminal.messages.append(f"{collided_enemy.name} also dropped {drop_name}!")
+                            kredits = int(150 * (1 + 0.1 * level))
+                            player.kredits = getattr(player, "kredits", 0) + kredits
+                            terminal.messages.append(f"{collided_enemy.name} dropped {kredits} kredits!")
                             game_objects.generate_item_keywords(player.inventory, dropped_items)
                             game_objects.remove_keyword(collided_enemy.name)
                             collided_enemy = spared
@@ -528,6 +547,59 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             terminal.messages.append(
                                 f"{msg}"
                             )
+                    elif command["type"] == "shop_list":
+                        if (touching_shop):
+                            print(shop_name.lower())
+                            print(command['shop'])
+                            if(command['shop']== shop_name.lower()):
+                                inv_type = "prosthetics"
+                                if shop_name.lower() == "milbay":
+                                    inv_type = "weapons"
+                                elif shop_name.lower() == "cafeteria":
+                                    inv_type = "items"
+                                for item in range(len(inventory[inv_type])):
+                                    terminal.messages.append(f"> {inventory[inv_type][item]}")
+                                    game_objects.add_keyword(inventory[inv_type][item]['name'])
+
+                            else:
+                                terminal.messages.append(f"{command['shop']} is not nearby..")
+                        else:
+                            terminal.messages.append(f"{command['shop']} is not nearby")
+                    
+                    elif command["type"] == "shop_buy":
+                        if (touching_shop):
+                            print(shop_name.lower())
+                            print(command['shop'])
+                            if(command['shop']== shop_name.lower()):
+                                inv_type = "prosthetics"
+                                if shop_name.lower() == "milbay":
+                                    inv_type = "weapons"
+                                elif shop_name.lower() == "cafeteria":
+                                    inv_type = "items"
+                                item_name = command["item"].lower()
+                                if item_name in [i['name'] for i in inventory[inv_type]]:
+                                    
+                                    item_dict = next((i for i in inventory[inv_type] if i["name"].lower() == item_name), None)
+                                    price = item_dict.get("price", 0)
+                                    if player.kredits >= price:
+                                        inventory[inv_type].remove(item_dict)
+                                        if item_name in player.inventory:
+                                            player.inventory[item_name] += 1
+                                        else:
+                                            player.inventory[item_name] = 1
+
+                                        terminal.messages.append(f"you bought {item_name}!")
+                                        player.kredits -= price
+                                    else:
+                                        terminal.messages.append(f"you dont have enough kredits!")
+                                else:
+                                    terminal.messages.append(f"{item_name} is not available in {shop_name}.")
+                            else:
+                                terminal.messages.append(f"{command['shop']} is not nearby..")
+                        else:
+                            terminal.messages.append(f"{command['shop']} is not nearby.")
+
+
                     elif command["type"] == "help":
                         terminal.messages.append("Available commands:")
                         terminal.messages.append("  player -a <hand> <enemy>    -> attack with right/left hand")
@@ -582,7 +654,8 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             "hacking_damage":player.hacking_damage,
                             "hp": player.hp,
                             "damage_buff": player.damage_buff,
-                            "buff_timer": player.buff_timer
+                            "buff_timer": player.buff_timer,
+                            "kredits":player.kredits
                         }
                         for prost in player.prostheses:
                             if hasattr(player, prost):  
@@ -776,9 +849,7 @@ def find_free_position_with_exit(grid_dict, player_pos):
             if 0 <= nx < max_x and 0 <= ny < max_y and grid_dict.get((nx, ny), 1) == 0:
                 return nx + 0.5, ny + 0.5
         return px + 0.5, py + 0.5
-
 def fix_char_position(grid_dict, player_pos):
-    from collections import deque
     max_x = max(x for x, _ in grid_dict.keys()) + 1
     max_y = max(y for _, y in grid_dict.keys()) + 1
     px, py = int(player_pos.x), int(player_pos.y)
@@ -793,7 +864,7 @@ def fix_char_position(grid_dict, player_pos):
         visited.add((x, y))
 
         # achou espaço livre
-        if 0 <= x < max_x and 0 <= y < max_y and grid_dict.get((x, y), 1) == 0:
+        if 0 <= x < max_x and 0 <= y < max_y:
             return x + 0.5, y + 0.5
 
         # expande vizinhos

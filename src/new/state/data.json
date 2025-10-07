@@ -11,10 +11,10 @@
             "scan_objects": 0,
             "damage_reduction": 0.0,
             "hack_speed_bonus": 0.0,
-            "hacking_damage": 0.2,
-            "hp": 15,
+            "hp": 1500,
             "damage_buff": 0,
-            "buff_timer": 0
+            "buff_timer": 0,
+            "kredits":1000
         },
         "itemsData": {
             "prostheses": [],
@@ -26,7 +26,7 @@
             }
         },
         "levelData": {
-            "level": 1
+            "level": 22
         },
         "config": {
             "playerName": "player",

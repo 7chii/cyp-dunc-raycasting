@@ -2,10 +2,12 @@ import constmath.constants as constants
 import dinamic.dinamic as dinamic
 
 GRID = ()
-def start_grid():
+def start_grid(saferoom):
     global GRID
-    GRID = dinamic.generate_random_grid(24, 24, wall_chance=0.25)
+    GRID = dinamic.generate_random_grid(24, 24, wall_chance=0.25, saferoom=saferoom)
     return GRID
+
+
      
 
 assert all(len(GRID) == len(row) for row in GRID), "deve ser quadrada!"

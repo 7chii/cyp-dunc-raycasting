@@ -6,76 +6,106 @@ import dinamic.item_dinamic as item_dinamic
 import random
 from collections import deque
 
-def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubicle_chance: float = 0.05) -> list[list[int]]:
+def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubicle_chance: float = 0.05, saferoom=False) -> list[list[int]]:
     """
     Gera uma grid com paredes aleatórias, garantindo que todos os espaços vazios estejam conectados.
     0 = espaço livre
     1 = parede
     """
     # gerar grid com paredes
+
     grid = []
-    for y in range(height):
-        row = []
-        for x in range(width):
-            if x == 0 or x == width - 1 or y == 0 or y == height - 1:
-                row.append(1)  # borda sempre parede
-            else:
-                if random.random() < wall_chance:
+    if saferoom:
+
+        for y in range(height):
+            row = []
+            for x in range(width):
+                if x == 0 or x == width - 1 or y == 0 or y == height - 1:
                     row.append(1)
                 else:
-                    # 5% de chance de virar cubículo, sen espaço livre
-                    row.append(2 if random.random() < cubicle_chance else 0)
-        grid.append(row)
+                    row.append(0)
+            grid.append(row)
 
-    #func para achar componentes conectados
-    def bfs(start):
-        q = deque([start])
-        visited = {start}
-        while q:
-            cx, cy = q.popleft()
-            for dx, dy in [(1,0), (-1,0), (0,1), (0,-1)]:
-                nx, ny = cx + dx, cy + dy
-                if 0 <= nx < width and 0 <= ny < height:
-                    if grid[ny][nx] == 0 and (nx, ny) not in visited:
-                        visited.add((nx, ny))
-                        q.append((nx, ny))
-        return visited
+        possible_positions = [
+            (x, y)
+            for x in range(2, width - 3)
+            for y in range(2, height - 3)
+        ]
+        random.shuffle(possible_positions)
 
-    #  encontrar todos os espaços livres
-    all_regions = []
-    seen = set()
-    for y in range(height):
-        for x in range(width):
-            if grid[y][x] == 0 and (x, y) not in seen:
-                region = bfs((x, y))
-                all_regions.append(region)
-                seen |= region
+        shop_values = [4, 5, 6]
+        for shop in shop_values:
+            for pos in possible_positions:
+                x, y = pos
+                if grid[y][x] == 0 and grid[y+1][x] == 0 and grid[y][x+1] == 0 and grid[y+1][x+1] == 0:
+                    grid[y][x] = shop
+                    grid[y+1][x] = shop
+                    grid[y][x+1] = shop
+                    grid[y+1][x+1] = shop
+                    break
+    else:
+        for y in range(height):
+            row = []
+            for x in range(width):
+                if x == 0 or x == width - 1 or y == 0 or y == height - 1:
+                    row.append(1)  # borda sempre parede
+                else:
+                    if random.random() < wall_chance:
+                        row.append(1)
+                    else:
+                        # 5% de chance de virar cubículo, sen espaço livre
+                        row.append(2 if random.random() < cubicle_chance else 0)
+            grid.append(row)
 
-    # Se so um espaco livre
-    if len(all_regions) <= 1:
-        return grid
+        #func para achar componentes conectados
+        def bfs(start):
+            q = deque([start])
+            visited = {start}
+            while q:
+                cx, cy = q.popleft()
+                for dx, dy in [(1,0), (-1,0), (0,1), (0,-1)]:
+                    nx, ny = cx + dx, cy + dy
+                    if 0 <= nx < width and 0 <= ny < height:
+                        if grid[ny][nx] == 0 and (nx, ny) not in visited:
+                            visited.add((nx, ny))
+                            q.append((nx, ny))
+            return visited
 
-    #  manter o maior espaco como principal
-    main_region = max(all_regions, key=len)
-    other_regions = [r for r in all_regions if r != main_region]
+        #  encontrar todos os espaços livres
+        all_regions = []
+        seen = set()
+        for y in range(height):
+            for x in range(width):
+                if grid[y][x] == 0 and (x, y) not in seen:
+                    region = bfs((x, y))
+                    all_regions.append(region)
+                    seen |= region
 
-    # conectar espacos menores a maiores
-    for region in other_regions:
-        # escolhe um ponto da sala atual e um do espaco principal
-        rx, ry = random.choice(list(region))
-        mx, my = random.choice(list(main_region))
+        # Se so um espaco livre
+        if len(all_regions) <= 1:
+            return grid
 
-        # faz um caminho ate conectar
-        cx, cy = rx, ry
-        while (cx, cy) != (mx, my):
-            if cx < mx: cx += 1
-            elif cx > mx: cx -= 1
-            elif cy < my: cy += 1
-            elif cy > my: cy -= 1
-            grid[cy][cx] = 0  # abre caminho
+        #  manter o maior espaco como principal
+        main_region = max(all_regions, key=len)
+        other_regions = [r for r in all_regions if r != main_region]
 
-        # atualiza a sala principal
-        main_region |= region
+        # conectar espacos menores a maiores
+        for region in other_regions:
+            # escolhe um ponto da sala atual e um do espaco principal
+            rx, ry = random.choice(list(region))
+            mx, my = random.choice(list(main_region))
+
+            # faz um caminho ate conectar
+            cx, cy = rx, ry
+            while (cx, cy) != (mx, my):
+                if cx < mx: cx += 1
+                elif cx > mx: cx -= 1
+                elif cy < my: cy += 1
+                elif cy > my: cy -= 1
+                grid[cy][cx] = 0  # abre caminho
+
+            # atualiza a sala principal
+            main_region |= region
     return grid
 
 import random
@@ -83,7 +113,7 @@ import random
 def add_exit_door(grid_dict):
     """
     Escolhe uma parede externa aleatória acessível (tem caminho livre adjacente) 
-    e adiciona uma porta (valor 3) no dict da grid.
+    e troca por uma porta (3) no dict da grid.
     """
     xs = [x for x, y in grid_dict.keys()]
     ys = [y for x, y in grid_dict.keys()]
@@ -115,12 +145,6 @@ def add_exit_door(grid_dict):
 
 
 def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
-    """
-    Gera inimigos pelo mapa.
-    - Progressão de símbolos, dano e HP ate o lv 50.
-    - Se o level for mult de 5: cria apenas 1 boss.
-    - Caso contrario: gera inimigos normais distribuídos.
-    """
     enemies = []
     free_positions = [pos for pos, val in grid_dict.items() if val == 0]
 
@@ -249,3 +273,31 @@ def generate_enemies_distributed(num_enemies, grid_dict, level, min_distance=2):
         enemies.append(enemy)
 
     return enemies
+
+def generate_shop_inventory(level: int) -> dict:
+    """
+    Gera o inventario das lojas
+    """
+
+    inventory = {"weapons": [], "prosthetics": [], "items": []}
+
+    num_items = random.randint(4, 8)
+    num_prosthetics = random.randint(4, 8)
+    num_weapons = random.randint(4, 7)
+
+    for num in range(num_weapons):
+        weapon_name = random.choice(game_items.equipable_items_hand)
+        weapon_obj = item_dinamic.generate_weapon(weapon_name, level)
+        inventory["weapons"].append(weapon_obj)
+    for num in range(num_prosthetics):
+        prost_name = random.choice(game_items.equipable_prosthetics)
+        prost_obj = item_dinamic.generate_prosthetic(prost_name, level)
+        inventory["prosthetics"].append(prost_obj)
+
+    usable_names = list(game_items.usable_items)
+    for num in range(num_items):
+        item_name = random.choice(usable_names)
+        item_obj = item_dinamic.generate_item(item_name, level)
+        inventory["items"].append(item_obj)
+
+    return inventory
