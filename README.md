@@ -2,7 +2,7 @@
 
 **Projeto:** Protocol Onboarding RPG  
 **Autores:** Mariana Pacheco, Tiago Daumas Vanni  
-**Descrição:** Um RPG de terminal cyberpunk. Via comandos de terminal, o jogador personaliza armas e próteses, e enfrenta inimigos dinâmicos.
+**Descrição:** Um RPG de terminal cyberpunk. Via comandos de terminal, o jogador personaliza armas e próteses, e enfrenta inimigos.
 
 ---
 
@@ -80,5 +80,3 @@ Programming: Mariana Pacheco, Tiago Daumas Vanni
 Design & Narrative: Mariana Pacheco, Tiago Daumas Vanni
 
 Game Planning & Documentation: Tiago Daumas Vanni
-
-Special Thanks: Todos os jogadores que sobreviveram ao terminal.
