@@ -397,12 +397,8 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 if equipped_count >= max_count:
                                     terminal.messages.append(f"You already have all {max_count} {item_full} equipped!")
                                 else:
-                                    # remove o item de qualquer mão/protese onde ele já está (opcional: só se quiser limitar 1 por slot)
-                                    # for h in hands_to_check:
-                                    #     if getattr(player, h, None) == item_full:
-                                    #         setattr(player, h, None)
 
-                                    # equipa na mão/protese selecionada
+                                    # equipa na mao/protese selecionada
                                     setattr(player, hand_attr, item_full)
                                     target_name = "" if hand_attr in ("right_hand", "left_hand") else "prosthesis"
                                     terminal.messages.append(f"You equipped {item_full} on your {hand} {target_name}.")

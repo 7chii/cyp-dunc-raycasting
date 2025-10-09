@@ -203,6 +203,7 @@ def main() -> None:
         if not enemies or all_spared:
             if exit_pos is None:
                 exit_pos = dinamic.add_exit_door(grid)
+                print("porta gerada")
 
             px, py = int(player.x), int(player.y)
             ex, ey = exit_pos
@@ -232,8 +233,6 @@ def main() -> None:
                         menu.draw(screen)
                         pg.display.flip()
                         clock.tick(30)
-
-
                     return
                 terminal.messages.clear()
                 level += 1

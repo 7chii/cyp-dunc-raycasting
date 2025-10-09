@@ -11,6 +11,7 @@ FLOOR = (25, 25, 100)
 CEILING = (25, 25, 25)
 CUBICLE = (255, 255, 255)
 CUBICLE_LINE = (0, 0, 255)
+DOOR = (255, 165, 0)
 """(180, 50, 50),   # loja tipo A, vermelho
     5: (50, 180, 50),   # loja tipo B, verde
     6: (50, 50, 180),  """

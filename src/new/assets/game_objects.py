@@ -487,7 +487,8 @@ class Terminal:
                 elif event.key == pg.K_RETURN:
                     if self.text.strip():
                         self.messages.append(f"{self.prompt_prefix} {self.text.strip()}")
-                        self.usercommands.append(self.text.strip())
+                        if(self.text.strip() not in self.usercommands):
+                            self.usercommands.append(self.text.strip())
                         commands = self.parse_command(self.text, player)
                         if terminalmsg:
                             terminalmsg.play()

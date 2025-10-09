@@ -98,7 +98,7 @@ def run_space_invaders_minigame(screen, terminal, time_off):
         if player_hit:
             return False
 
-        # --- desenhar ---
+
         screen.fill((0, 0, 0))
         y = 20
         line_height = terminal.font.get_height() + 5
@@ -193,12 +193,12 @@ def run_hack_minigame(screen, terminal, time_off):
             last_obstacle_time = current_time
 
 
-        # --- Desenhar ---
+
         screen.fill((0, 0, 0))
         y = 20
         line_height = terminal.font.get_height() + 5
 
-        # Mensagens
+        # msg
         for msg in messages_backup[-5:]:
             rendered = terminal.font.render(msg, True, (0, 255, 0))
             screen.blit(rendered, (20, y))
@@ -207,7 +207,7 @@ def run_hack_minigame(screen, terminal, time_off):
         cell_w = terminal.font.size(' ')[0]
         cell_h = line_height
 
-        # Desenhar paredes
+        # desenhar paredes
         for row_idx, row in enumerate(lines):
             for col_idx, char in enumerate(row):
                 if char == '#':
