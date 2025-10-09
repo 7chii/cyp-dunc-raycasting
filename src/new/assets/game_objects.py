@@ -127,11 +127,11 @@ class Player:
         return f"{prost_name} successfully installed as {attr_name}!"
 
     def use_item(self, item_name: str) -> str:
-        """Usa um item do inventário, aplicando efeitos com multiplicadores de marca e reduzindo quantidade."""
+        """ usa um item do inventario, aplicando efeitos com multiplicadores de marca e reduzindo num"""
         if item_name not in self.inventory:
             return f"You don’t have {item_name}!"
 
-        # separar partes: empresa, base e grades (se existirem)
+        #  empresa, base e grades 
         parts = item_name.split("-")
         if len(parts) < 2:
             return f"{item_name} is invalid!"
@@ -198,14 +198,13 @@ class Player:
 
     def get_damage(self, hand: str):
         """
-        Retorna o dano do ataque usando a mao ou protese selecionada.
-        hand pode ser "right", "left" ou o nome de uma prot em self.prostheses.
+        Retorna o dano do ataque usando a mao ou protese selecionada
+        mao pode ser "right", "left" ou o nome de uma prot em self.prostheses
         """
         item = None
         company = base = None
         symbols = []
 
-        # --- maos normais ---
         if hand == "right":
             item = self.right_hand
             if item:
@@ -216,24 +215,19 @@ class Player:
             if item:
                 company, base, symbols = parse_weapon(item)
 
-        # --- proteses (ex: "generic-arm1") ---
         elif hand in self.prostheses:
             item = getattr(self, hand, None)
             if item:
                 company, base, symbols = parse_weapon(item)
 
-        # --- sem arma equipada ---
         if not item:
             return self.extra_damage, 1.0, 0.0, False, None  
 
-        # --- pega dano base ---
         dmg = game_items.equipable_items_hand_dmg.get(base, 1)
 
-        # --- aplica extras das grades ---
         chance_to_hit, stun_chance, force_unequip, extra_dmg = parse_weapon_grades(symbols)
         dmg += self.extra_damage + extra_dmg
 
-        # --- aplica multiplicador da empresa ---
         dmg *= game_items.item_companies_values.get(company, 1)
 
         return int(dmg), chance_to_hit, stun_chance, force_unequip, item
@@ -392,7 +386,7 @@ class Enemy:
         
     def install_prosthetic(self, prosthetic_obj: dict):
         """
-        Instala uma prótese no inimigo e aplica seus efeitos.
+        instala protese
         """
         self.prostheses.append(prosthetic_obj)
 
@@ -581,6 +575,17 @@ class Terminal:
             # player -h <enemy>
             elif len(parts) == 3 and parts[0] == "player" and parts[1] == "-h":
                 results.append({"type": "hack", "target": parts[2]})
+            
+            # playlist start
+            elif len(parts) == 2 and parts[0] == "playlist" and parts[1] == "start":
+                results.append({"type": "play"})
+            # playlist skip
+            elif len(parts) == 2 and parts[0] == "playlist" and parts[1] == "skip":
+                results.append({"type": "skip"})
+            # playlist pause
+            elif len(parts) == 2 and parts[0] == "playlist" and parts[1] == "pause":
+                results.append({"type": "pause"})
+
 
             # player -equip <hand> <item>
             elif len(parts) == 4 and parts[0] == "player" and parts[1] == "-equip":
@@ -851,7 +856,7 @@ def longest_common_prefix(strs):
         return shortest
 
 def remove_keyword(name: str) -> None:
-    """ Remove keywords da lista """
+    """ remove keywords """
     global keywords
     keywords.remove(name)
 
@@ -912,7 +917,8 @@ keywords = [
         "player -a", "player -h", "player -equip", "player -use", "player -scan",
         "player -i ls", "player -e ls", "player status",
         "pickup", "combat runaway", "terminal exit","status", "player -install",
-        "spare", "-rm", "right", "left", "save", "prostbuy", "cafeteria", "milbay", "buy", "ls"
+        "spare", "-rm", "right", "left", "save", "prostbuy", "cafeteria", "milbay", "buy", "ls",
+        "playlist start", "playlist pause", "playlist skip"
     ]
 
 def add_keyword(str):

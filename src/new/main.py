@@ -15,20 +15,12 @@ import json
 import os
 level = 0
 inventory = {}
-def main() -> None:
-    global level
-    pg.init()
-    pg.mixer.init()
-
-
-    width, height = constants.SIZE
-    font = pg.font.SysFont("Courier New", 23)
-    worldfont = pg.font.SysFont("Courier New", 15)
-
-    if os.name == "nt":  # se for windows para diminuir "erro" de scaling de computador
+pg.mixer.init()
+if os.name == "nt":  # se for windows para diminuir "erro" de scaling de computador
         footstep_sound = pg.mixer.Sound("src/new/assets/audio/footstep.wav")
         terminalbg = pg.mixer.Sound("src/new/assets/audio/terminalbg.wav")
         terminalmsg = pg.mixer.Sound("src/new/assets/audio/terminalmsg.wav")
+        musicfolder = "src/new/assets/playlist"
 
         try:
             import ctypes
@@ -41,11 +33,31 @@ def main() -> None:
         except Exception:
             info = pg.display.Info()
             width, height = info.current_w, info.current_h
-    else:
-        info = pg.display.Info()
-        footstep_sound = pg.mixer.Sound("assets/audio/footstep.wav")
-        terminalbg = pg.mixer.Sound("assets/audio/terminalbg.wav")
-        terminalmsg = pg.mixer.Sound("assets/audio/terminalmsg.wav")
+else:
+    info = pg.display.Info()
+    footstep_sound = pg.mixer.Sound("assets/audio/footstep.wav")
+    terminalbg = pg.mixer.Sound("assets/audio/terminalbg.wav")
+    terminalmsg = pg.mixer.Sound("assets/audio/terminalmsg.wav")
+    musicfolder = "assets/playlist"
+playlist = [os.path.join(musicfolder, music) for music in os.listdir(musicfolder) if music.endswith(".mp3")]
+random.shuffle(playlist)
+current_song = 0
+def play_music(index):
+        pg.mixer.music.load(playlist[index])
+        pg.mixer.music.play()
+
+def main() -> None:
+    global current_song
+    global playlist
+    global level
+    pg.init()
+
+
+    width, height = constants.SIZE
+    font = pg.font.SysFont("Courier New", 23)
+    worldfont = pg.font.SysFont("Courier New", 15)
+
+
 
     terminalbg.set_volume(0.1)
     footstep_sound.set_volume(0.3)
@@ -63,7 +75,6 @@ def main() -> None:
 
     if not terminalbg_channel.get_busy():
         terminalbg_channel.play(terminalbg, loops=-1)
-
 
     while running and menu.active:
         events = pg.event.get()
@@ -133,7 +144,7 @@ def main() -> None:
         terminal.level = level
         if(generate_enemies):
             enemies = dinamic.generate_enemies_distributed(level +1, grid_dict, level)
-        player.x, player.y = terminal_commands.fix_char_position(grid_dict, player.xy)
+        player.x, player.y = terminal_commands.find_free_position_with_exit(grid_dict, player.xy)
         return GRID, grid_dict, enemies, level
 
     GRID, grid, enemies, level = generate_level()
@@ -146,11 +157,17 @@ def main() -> None:
     tab_pressed = False
     see_through = False
     exit_pos = None
+    is_playing = False
+
     while running:
         dt = clock.tick(constants.FPS)/1000.0
         if player.update_buffs(dt):
             terminal.messages.append("WARN: buff ended")
         running, events, tab_pressed, see_through, blocked= handle_events(black_screen, tab_pressed, running, player, enemies, see_through, dt, footstep_sound)
+        #comeca musica quando uma acaba
+        if is_playing and not pg.mixer.music.get_busy():
+            current_song = (current_song + 1) % len(playlist)
+            play_music(current_song)
         if not running:
             break
         
@@ -172,9 +189,9 @@ def main() -> None:
             if not terminalbg_channel.get_busy():
                 terminalbg_channel.play(terminalbg, loops=-1) 
             screen.fill((0, 0, 0))
-            black_screen, collided_enemy = terminal_commands.handle_terminal_commands(
+            black_screen, collided_enemy, current_song, is_playing= terminal_commands.handle_terminal_commands(
                 screen, enemies, player, terminal, events, dropped_items,
-                black_screen, collided_enemy, grid, level, terminalmsg, touching_shop, shop_name, inventory
+                black_screen, collided_enemy, grid, level, terminalmsg, touching_shop, shop_name, inventory, playlist, current_song, is_playing
             )
             continue
         else:
@@ -245,7 +262,7 @@ def main() -> None:
         rendering.draw_floor_and_ceiling_ascii(screen, background_surface)
 
         step = 1
-        rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, worldfont, step, see_through)
+        rendering.cast_rays_ascii(screen, player.xy, player.direction, player.plane, grid, width, height, worldfont, step, see_through, font)
         rendering.draw_items_ascii(screen, player, dropped_items, grid, width, height, font, see_through)
         rendering.draw_enemies_ascii(screen, player, enemies, grid, width, height, font, see_through)
 

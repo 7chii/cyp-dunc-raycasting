@@ -50,9 +50,8 @@ def pre_render_background(font, width, height):
     return surf
 
 def draw_floor_and_ceiling_ascii(screen, background_surface):
-    """Copia o fundo pre-renderizado."""
     screen.blit(background_surface, (0,0))
-def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, font, step=1, see_through=False):
+def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, font, step=1, see_through=False, worldfont=None):
     SHOP_COLORS = {
         4: constants.PROSTBUY,
         5: constants.CAFETERIA,
@@ -132,7 +131,7 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
                 text_rect.centerx = cx * CHAR_W + (7 * CHAR_W) // 2
                 screen.blit(text_surf, text_rect)
 
-        # --- cubículos ---
+        # cubiculos
         if cubicle_hit is not None:
             c_dist, _, _ = cubicle_hit
             safe_dist_c = c_dist if c_dist != 0 else 1e-6
@@ -154,9 +153,9 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
                     continue
                 _blit_cached_char(screen, font, cubicle_char, color, cx, row, CHAR_W, CHAR_H)
 
-            if cx % 7 == 0:
+            if cx % 10 == 0:
                 text = "CUBICLE"
-                text_surf = font.render(text, True, constants.CUBICLE_LINE)
+                text_surf = worldfont.render(text, True, constants.CUBICLE_LINE)
                 text_rect = text_surf.get_rect()
                 text_rect.centery = text_row * CHAR_H + CHAR_H // 2
                 text_rect.centerx = cx * CHAR_W + (7 * CHAR_W) // 2
@@ -177,7 +176,7 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
 
                 stair_dist = max(0.1, (dx**2 + dy**2) ** 0.5)
                 ray_dir = constants.Point2(dx / stair_dist, dy / stair_dist)
-                wall_dist, _, _, _, _, _ = run_along_ray(origin, ray_dir, grid_dict)
+                wall_dist, side, element, cubicle_hit, shop_hit, stair_hit = run_along_ray(origin, ray_dir, grid_dict)
 
                 stair_screen_x = int((width / 2) * (1 + transform_x / transform_y))
 
@@ -195,11 +194,12 @@ def cast_rays_ascii(screen, origin, direction, plane, grid_dict, width, height, 
                 left_cx = max(0, center_cx - half_width_cx)
                 right_cx = min(cols - 1, center_cx + half_width_cx)
 
-                stair_char = "█" 
+                stair_char = "EXIT" 
 
                 for cx in range(left_cx, right_cx + 1):
-                    for row in range(y_start_s // CHAR_H, y_end_s // CHAR_H + 1):
-                        _blit_cached_char(screen, font, stair_char, color, cx, row, CHAR_W, CHAR_H)
+                    if cx % 4 == 0:
+                        for row in range(y_start_s // CHAR_H, y_end_s // CHAR_H + 1):
+                            _blit_cached_char(screen, worldfont, stair_char, color, cx, row, CHAR_W, CHAR_H)
 
 def draw_enemies_ascii(screen, player, enemies, grid_dict, width, height, font, see_through_walls=False):
     CHAR_W, CHAR_H = font.size("A")
@@ -228,7 +228,7 @@ def draw_enemies_ascii(screen, player, enemies, grid_dict, width, height, font, 
             enemy_dist = (rel_x**2 + rel_y**2) ** 0.5
             if not see_through_walls:
                 ray_dir = constants.Point2(rel_x / enemy_dist, rel_y / enemy_dist)
-                wall_dist, _, _, _, _, _= run_along_ray(player.xy, ray_dir, grid_dict)
+                wall_dist, side, element, cubicle_hit, shop_hit, stair_hit= run_along_ray(player.xy, ray_dir, grid_dict)
                 if wall_dist < enemy_dist:
                     continue
 
@@ -279,7 +279,7 @@ def draw_items_ascii(screen, player, dropped_items, grid_dict, width, height, fo
         item_dist = (rel_x**2 + rel_y**2) ** 0.5
         if not see_through_walls:
             ray_dir = constants.Point2(rel_x / item_dist, rel_y / item_dist)
-            wall_dist, _, _, _, _, _ = run_along_ray(player.xy, ray_dir, grid_dict)
+            wall_dist, side, element, cubicle_hit, shop_hit, stair_hit = run_along_ray(player.xy, ray_dir, grid_dict)
             if wall_dist < item_dist:
                 continue
 

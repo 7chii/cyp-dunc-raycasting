@@ -1,14 +1,7 @@
 -> melhoria de inimigos dinamicamente (mais fortes quanto mais niveis) ok/2
-
--> add musica
--> add "now playing:" e nome da musica, caso musica turnoff "there is no sound."
--> opcao de turnoff musica ou audio-effects
+-> opcao de turnoff musica ou audio-effects ok/2
 
 -> add apagamento de saves ok/2 ao terminar jogo
-
--> add cafeterias (andares de pausa e compra de itens/proteses/etc)
--> add dinheiro
--> add lojas as cafeterias
 
 -> add antivirus to enemies ( hacking resist )
 -> add mais itens
@@ -23,6 +16,11 @@
 
 -> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
 
+-> add cafeterias (andares de pausa e compra de itens/proteses/etc) ok
+-> add dinheiro ok
+-> add lojas as cafeterias ok
+-> add musica ok
+-> add "now playing:" e nome da musica, caso musica turnoff "there is no sound." ok
 -> add andar de compras ok
 -> add lojas ok
 -> add kredits ok

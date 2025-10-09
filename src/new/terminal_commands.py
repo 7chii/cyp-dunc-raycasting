@@ -6,10 +6,12 @@ import minigames
 import dinamic.item_dinamic as item_dinamic
 import pygame as pg
 import unicodedata
+from main import play_music
 from collections import deque
+import os
 
 
-def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level, terminalmsg, touching_shop, shop_name, inventory):
+def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_items, black_screen, collided_enemy, grid, level, terminalmsg, touching_shop, shop_name, inventory, playlist, current_song, is_playing):
     """
     lida com os comandos do terminal (apertar TAB ou combate) e retorna
     os estados atualizados de black_screen e collided_enemy
@@ -36,6 +38,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
 
     def terminal_command_callback(commands):
         import random
+        nonlocal is_playing
         nonlocal black_screen
         nonlocal collided_enemy
         nonlocal level
@@ -43,6 +46,8 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
         nonlocal touching_shop
         nonlocal shop_name
         nonlocal inventory
+        nonlocal playlist
+        nonlocal current_song
         
         def enemy_turn():
             if collided_enemy and collided_enemy in enemies and collided_enemy.hp > 1:
@@ -175,6 +180,26 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             f"ERROR: You can only attack the enemy currently in combat ({collided_enemy.name if collided_enemy else 'nenhum'})!"
                         )
                     enemy_turn()
+                
+                elif command["type"] == "play":
+                    if not pg.mixer.music.get_busy():
+                        play_music(current_song)
+                        pg.mixer.music.set_volume(0.3)
+                        terminal.messages.append("started playlist . . .")
+                        terminal.messages.append(f"playing : {os.path.basename(playlist[current_song])}")
+                elif command["type"] == "pause":
+                    if pg.mixer.music.get_busy():
+                        pg.mixer.music.pause()
+                        terminal.messages.append("paused playlist . . .")
+                elif command["type"] == "skip":
+                        if(not is_playing):
+                            terminal.messages.append("there is nothing playing . . .")
+                        else:
+                            current_song = (current_song + 1)% len(playlist)
+                            play_music(current_song)
+                            is_playing = True
+                            terminal.messages.append("skipped song . . .")
+                            terminal.messages.append(f"playing : {os.path.basename(playlist[current_song])}")
 
                 elif command["type"] == "hack":
                     if collided_enemy and collided_enemy.name == command["target"]:
@@ -270,6 +295,9 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                     terminal.messages.append("  pickup <item>               -> pick up nearby item")
                     terminal.messages.append("  combat runaway              -> try to escape combat")
                     terminal.messages.append("  combat exit                 -> end combat if enemy HP = 1")
+                    terminal.messages.append("  playlist start              -> to start playlist")
+                    terminal.messages.append("  playlist pause              -> to pause playlist")
+                    terminal.messages.append("  playlist skip               -> to skip song")
                     terminal.messages.append("  to view older commands      -> ↑ / ↓")
                     terminal.messages.append("  to view older msg history   -> pgup / pgdown")
                     terminal.messages.append("  help                        -> show this list")
@@ -536,6 +564,28 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             terminal.messages.append(
                                 f"ERROR: You can only hack the enemy currently in combat (none)!"
                             )
+                    elif command["type"] == "play":
+                        if not pg.mixer.music.get_busy():
+                            play_music(current_song)
+                            pg.mixer.music.set_volume(0.3)
+                            is_playing = True
+                            terminal.messages.append("started playlist . . .")
+                            terminal.messages.append(f"playing : {os.path.basename(playlist[current_song])}")
+                    elif command["type"] == "pause":
+                        if pg.mixer.music.get_busy():
+                            pg.mixer.music.pause()
+                            is_playing = False
+                            terminal.messages.append("paused playlist . . .")
+                    elif command["type"] == "skip":
+                        if(not is_playing):
+                            terminal.messages.append("there is nothing playing . . .")
+                        else:
+                            current_song = (current_song + 1)% len(playlist)
+                            play_music(current_song)
+                            is_playing = True
+                            terminal.messages.append("skipped song . . .")
+                            terminal.messages.append(f"playing : {os.path.basename(playlist[current_song])}")
+
                     elif command["type"] == "scan":
                             terminal.messages.append(
                                 f"ERROR: You can only scan the enemy currently in combat (none)!"
@@ -617,6 +667,9 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                         terminal.messages.append("  pickup <item>               -> pick up nearby item")
                         terminal.messages.append("  combat runaway              -> try to escape combat")
                         terminal.messages.append("  combat exit                 -> end combat if enemy HP = 1")
+                        terminal.messages.append("  playlist start              -> to start playlist")
+                        terminal.messages.append("  playlist pause              -> to pause playlist")
+                        terminal.messages.append("  playlist skip               -> to skip song")
                         terminal.messages.append("  to view older commands      -> ↑ / ↓")
                         terminal.messages.append("  to view older msg history   -> pgup / pgdown")
                         terminal.messages.append("  help                        -> show this list")
@@ -838,7 +891,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
     terminal.handle_event(events, player, command_callback=terminal_command_callback, error_callback=terminal_error_callback, terminalmsg=terminalmsg)
     terminal.draw(screen)
     pg.display.flip()
-    return black_screen, collided_enemy
+    return black_screen, collided_enemy, current_song, is_playing
 
 def find_free_position_with_exit(grid_dict, player_pos):
         max_x = max(x for x, _ in grid_dict.keys()) + 1
@@ -849,6 +902,7 @@ def find_free_position_with_exit(grid_dict, player_pos):
             if 0 <= nx < max_x and 0 <= ny < max_y and grid_dict.get((nx, ny), 1) == 0:
                 return nx + 0.5, ny + 0.5
         return px + 0.5, py + 0.5
+
 def fix_char_position(grid_dict, player_pos):
     max_x = max(x for x, _ in grid_dict.keys()) + 1
     max_y = max(y for _, y in grid_dict.keys()) + 1
