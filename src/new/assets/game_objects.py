@@ -692,7 +692,7 @@ class Terminal:
 
         y = margin_top
         for msg in msgs_to_show:
-            rendered = self.font.render(msg, True, (0, 255, 0))
+            rendered = self.font.render(msg, True, constants.TERMINAL)
             screen.blit(rendered, (20, y))
             y += line_height
 
@@ -704,7 +704,7 @@ class Terminal:
 
         for i, line in enumerate(edit_lines):
             line_y = edit_start_y + i*line_height
-            rendered = self.font.render(line, True, (0, 255, 0))
+            rendered = self.font.render(line, True, constants.TERMINAL)
             screen.blit(rendered, (20, line_y))
 
         # cursor piscante
@@ -712,7 +712,7 @@ class Terminal:
             last_line = edit_lines[-1]
             cursor_x = 20 + self.font.size(last_line)[0]
             cursor_y = edit_start_y + (len(edit_lines)-1)*line_height
-            cursor = self.font.render("_", True, (0, 255, 0))
+            cursor = self.font.render("_", True, constants.TERMINAL)
             screen.blit(cursor, (cursor_x, cursor_y))
 
 class TerminalMenu:
@@ -836,7 +836,7 @@ class TerminalMenu:
             self.terminal.messages.append("> Unknown command: " + text)
 
     def draw(self, screen):
-        txt_surf = self.terminal.font.render("> " + self.input_text, True, (0,255,0))
+        txt_surf = self.terminal.font.render("> " + self.input_text, True, constants.TERMINAL)
         screen.blit(txt_surf, (10, self.terminal.height - 30))
 
         self.terminal.text = self.input_text

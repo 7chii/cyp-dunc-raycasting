@@ -6,18 +6,27 @@ SIZE = (800, 600)
 FPS = (60)
 
 STEP = 1
+
+#wall color
 WALL = (255, 255, 255)
+#terminal color
+TERMINAL =  (255, 255, 255)
+#floor color
 FLOOR = (25, 25, 100)
+#ceeling color
 CEILING = (25, 25, 25)
+#cubicle color
 CUBICLE = (255, 255, 255)
+#cubicle line color
 CUBICLE_LINE = (0, 0, 255)
+#stairs
 DOOR = (255, 165, 0)
-"""(180, 50, 50),   # loja tipo A, vermelho
-    5: (50, 180, 50),   # loja tipo B, verde
-    6: (50, 50, 180),  """
+#shops colors
 PROSTBUY = (180, 50, 50)
 CAFETERIA = (50, 180, 50)
 MILBAY = (50, 50, 180)
+
+FPS_LV = (255, 0, 0)
 
 SPARED = (0, 0, 255)
 ENEMY = (255, 0, 0)

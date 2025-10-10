@@ -24,11 +24,11 @@ def clear_screen(screen):
     screen.fill((0,0,0))
 
 def draw_fps(screen, font, clock, half_w):
-    text = font.render(f"fps={int(clock.get_fps())}", False, (255,0,0))
+    text = font.render(f"fps={int(clock.get_fps())}", False, constants.FPS_LV)
     screen.blit(text, (half_w,0))
 
 def draw_level_number(screen, font, level, width_minus_100):
-    text = font.render(f"f={level}", False, (255,0,0))
+    text = font.render(f"f={level}", False, constants.FPS_LV)
     screen.blit(text, (width_minus_100,0))
 
 def pre_render_background(font, width, height):
