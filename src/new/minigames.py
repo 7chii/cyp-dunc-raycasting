@@ -1,6 +1,7 @@
 import time
 import random
 import pygame as pg
+import constmath.constants as constants
 
 def run_minigames(screen, terminal, time_off):
     game = random.choice(["A", "B"])
@@ -105,7 +106,7 @@ def run_space_invaders_minigame(screen, terminal, time_off):
 
         # msg
         for msg in messages_backup[-5:]:
-            rendered = terminal.font.render(msg, True, (0, 255, 0))
+            rendered = terminal.font.render(msg, True, constants.TERMINAL)
             screen.blit(rendered, (20, y))
             y += line_height
 
@@ -117,18 +118,18 @@ def run_space_invaders_minigame(screen, terminal, time_off):
         for ex, ey in enemies:
             ex_px = 20 + ex * cell_w
             ey_px = y_offset + ey * cell_h
-            screen.blit(terminal.font.render('T', True, (0, 255, 0)), (ex_px, ey_px))
+            screen.blit(terminal.font.render('T', True, constants.TERMINAL), (ex_px, ey_px))
 
         # desenhar balas
         for bx, by in bullets:
             bx_px = 20 + bx * cell_w
             by_px = y_offset + by * cell_h
-            screen.blit(terminal.font.render('|', True, (0, 255, 0)), (bx_px, by_px))
+            screen.blit(terminal.font.render('|', True, constants.TERMINAL), (bx_px, by_px))
 
         # Desenhar jogador
         player_px = 20 + player_pos * cell_w
         player_py = y_offset + player_line_idx * cell_h
-        screen.blit(terminal.font.render('@', True, (0, 255, 0)), (player_px, player_py))
+        screen.blit(terminal.font.render('@', True, constants.TERMINAL), (player_px, player_py))
 
         pg.display.flip()
 
@@ -200,7 +201,7 @@ def run_hack_minigame(screen, terminal, time_off):
 
         # msg
         for msg in messages_backup[-5:]:
-            rendered = terminal.font.render(msg, True, (0, 255, 0))
+            rendered = terminal.font.render(msg, True, constants.TERMINAL)
             screen.blit(rendered, (20, y))
             y += line_height
 
@@ -211,7 +212,7 @@ def run_hack_minigame(screen, terminal, time_off):
         for row_idx, row in enumerate(lines):
             for col_idx, char in enumerate(row):
                 if char == '#':
-                    obstacle_render = terminal.font.render('#', True, (0, 255, 0))
+                    obstacle_render = terminal.font.render('#', True, constants.TERMINAL)
                     screen.blit(obstacle_render, (20 + col_idx * cell_w, y + row_idx * cell_h))
 
         # player separado
@@ -220,7 +221,7 @@ def run_hack_minigame(screen, terminal, time_off):
             y + player_line_idx * cell_h,
             cell_w, cell_h
         )
-        player_render = terminal.font.render('@', True, (0, 255, 0))
+        player_render = terminal.font.render('@', True, constants.TERMINAL)
         screen.blit(player_render, player_rect.topleft)
 
         # colisao jogador x parede

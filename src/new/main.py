@@ -34,7 +34,7 @@ if os.name == "nt":  # se for windows para diminuir "erro" de scaling de computa
             info = pg.display.Info()
             width, height = info.current_w, info.current_h
 else:
-    info = pg.display.Info()
+    #info = pg.display.Info()
     footstep_sound = pg.mixer.Sound("assets/audio/footstep.wav")
     terminalbg = pg.mixer.Sound("assets/audio/terminalbg.wav")
     terminalmsg = pg.mixer.Sound("assets/audio/terminalmsg.wav")
