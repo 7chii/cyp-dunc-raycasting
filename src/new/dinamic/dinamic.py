@@ -8,13 +8,9 @@ from collections import deque
 
 def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubicle_chance: float = 0.05, saferoom=False) -> list[list[int]]:
     """
-    Gera uma grid com paredes aleatórias, garantindo que todos os espaços vazios estejam conectados.
-    0 = espaço livre
+    Gera uma grid com paredes random, garantindo que todos os espaços vazios fiquem junsto.
+    0 = chao
     1 = parede
-    2 = cubiculo
-    3 = loja1
-    4 = loja2
-    5 = loja3
     """
     # gerar grid com paredes
 
@@ -57,7 +53,7 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
                     if random.random() < wall_chance:
                         row.append(1)
                     else:
-                        # 5% de chance de virar cubículo, sen espaço livre
+                        # 5% de chance de cubiculo
                         row.append(2 if random.random() < cubicle_chance else 0)
             grid.append(row)
 
@@ -116,7 +112,7 @@ import random
 
 def add_exit_door(grid_dict):
     """
-    Escolhe uma parede externa aleatoria acessivel (tem caminho livre adjacente) 
+    Escolhe uma parede de fora random (q tem caminho livre adjacente) 
     e troca por uma porta (3) no dict da grid.
     """
     xs = [x for x, y in grid_dict.keys()]
@@ -141,7 +137,7 @@ def add_exit_door(grid_dict):
             candidates.append((max_x, yi))
 
     if not candidates:
-        raise ValueError("Não foi possível encontrar uma parede externa acessível.")
+        raise ValueError("external wall path inaccessible.")
 
     x, y = random.choice(candidates)
     grid_dict[(x, y)] = 3  # define porta

@@ -12,16 +12,16 @@ from events import handle_events
 from utils import player_collides_enemy, find_free_position_with_exit, player_collides_shop
 import assets.initial_menu as initial_menu
 import json
-from respath import resource_path
 import os
+from respath import resource_path
 level = 0
 inventory = {}
 pg.mixer.init()
-
 if os.name == "nt":  # se for windows para diminuir "erro" de scaling de computador
         footstep_sound = pg.mixer.Sound(resource_path("assets/audio/footstep.wav"))
         terminalbg = pg.mixer.Sound(resource_path("assets/audio/terminalbg.wav"))
         terminalmsg = pg.mixer.Sound(resource_path("assets/audio/terminalmsg.wav"))
+
         musicfolder = resource_path("assets/playlist")
 
         try:
@@ -36,7 +36,7 @@ if os.name == "nt":  # se for windows para diminuir "erro" de scaling de computa
             info = pg.display.Info()
             width, height = info.current_w, info.current_h
 else:
-    info = pg.display.Info()
+    #info = pg.display.Info()
     footstep_sound = pg.mixer.Sound("assets/audio/footstep.wav")
     terminalbg = pg.mixer.Sound("assets/audio/terminalbg.wav")
     terminalmsg = pg.mixer.Sound("assets/audio/terminalmsg.wav")
@@ -53,6 +53,10 @@ def main() -> None:
     global playlist
     global level
     pg.init()
+    pg.display.set_caption("Protocol Onboarding")
+    game_icon = pg.image.load(resource_path('assets/icon.png'))
+    pg.display.set_icon(game_icon)
+
 
 
     width, height = constants.SIZE
