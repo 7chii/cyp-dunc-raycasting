@@ -19,7 +19,11 @@
 
 ## Visão Geral
 
-Neural Terminal RPG é um jogo de aventura e combate ambientado em um mundo cyberpunk, onde o jogador controla seu personagem através de um terminal. Cada ação é realizada por comandos de texto, permitindo ataques, hacks, instalação de próteses, coleta de itens e gerenciamento de inventário.
+Protocol Onboarding é um jogo de aventura e combate ambientado em um mundo cyberpunk, onde o jogador controla seu personagem através de um terminal. Cada ação é realizada por comandos de texto, permitindo ataques, hacks, instalação de próteses, coleta de itens e gerenciamento de inventário.
+
+---
+
+![Jornal Lore](readmeimg/newspap.png)
 
 ---
 
