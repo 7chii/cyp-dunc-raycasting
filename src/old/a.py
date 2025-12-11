@@ -122,7 +122,7 @@ def main() -> None:
 
             # Mensagens
             for msg in messages_backup[-5:]:
-                rendered = terminal.font.render(msg, True, (0, 255, 0))
+                rendered = terminal.font.render(msg, True, constants.TERMINAL)
                 screen.blit(rendered, (20, y))
                 y += line_height
 
@@ -132,16 +132,16 @@ def main() -> None:
 
             # Desenhar inimigos
             for ex, ey in enemies:
-                enemy_render = terminal.font.render('*', True, (0, 255, 0))
+                enemy_render = terminal.font.render('*', True, constants.TERMINAL)
                 screen.blit(enemy_render, (20 + ex * cell_w, y_offset + ey * cell_h))
 
             # Desenhar balas
             for bx, by in bullets:
-                bullet_render = terminal.font.render('|', True, (0, 255, 0))
+                bullet_render = terminal.font.render('|', True, constants.TERMINAL)
                 screen.blit(bullet_render, (20 + bx * cell_w, y_offset + int(by) * cell_h))
 
             # Desenhar jogador
-            player_render = terminal.font.render('@', True, (0, 255, 0))
+            player_render = terminal.font.render('@', True, constants.TERMINAL)
             player_rect = pg.Rect(20 + player_pos * cell_w, y_offset + player_line_idx * cell_h, cell_w, cell_h)
             screen.blit(player_render, player_rect.topleft)
 
@@ -211,7 +211,7 @@ def main() -> None:
 
             # Mensagens
             for msg in messages_backup[-5:]:
-                rendered = terminal.font.render(msg, True, (0, 255, 0))
+                rendered = terminal.font.render(msg, True, constants.TERMINAL)
                 screen.blit(rendered, (20, y))
             y_offset = y + 5 * line_height  # deslocamento após mensagens
 
@@ -223,7 +223,7 @@ def main() -> None:
             for row_idx, row in enumerate(lines):
                 for col_idx, char in enumerate(row):
                     if char == '#':
-                        obstacle_render = terminal.font.render('#', True, (0, 255, 0))
+                        obstacle_render = terminal.font.render('#', True, constants.TERMINAL)
                         screen.blit(obstacle_render, (20 + col_idx * cell_w, y_offset + row_idx * cell_h))
 
             # Jogador separado
@@ -232,7 +232,7 @@ def main() -> None:
                 y_offset + player_line_idx * cell_h,
                 cell_w, cell_h
             )
-            player_render = terminal.font.render('@', True, (0, 255, 0))
+            player_render = terminal.font.render('@', True, constants.TERMINAL)
             screen.blit(player_render, player_rect.topleft)
 
             # Colisão jogador x obstáculos

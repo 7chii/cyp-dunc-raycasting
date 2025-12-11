@@ -1,28 +1,75 @@
--> add if(nenhum inimigo): liberar porta
--> add porta para subir de nivel
--> add logica if(encostando em porta): mudar nivel ok/2 (subida automatica de nivel)
+-> melhoria de inimigos dinamicamente (mais fortes quanto mais niveis) ok/2
+-> opcao de turnoff musica ou audio-effects ok/2
 
--> add menu inicial
--> add salvamento (salvar numero do nivel e estado do personagem(itens, equipados, instalados etc))
+-> add apagamento de saves ok/2 ao terminar jogo
 
--> geracao dinamica de bosses (com melhoria conforme nivel)
--> add boss
--> spawn de boss a cada multiplo de 5 ate 50
-
-->melhoria de inimigos dinamicamente (mais fortes quanto mais niveis)
-
+-> add antivirus to enemies ( hacking resist )
 -> add mais itens
+-> add autocomplete no terminal do menu
 
+-> fix damage talvez
+-> bloquear entradas do jogador quando abrir terminal pelo lctrl
 
-->add status effects
-->add barra de scroll (com setinha)
--> comando help
+-> testar geracao de bosses ok/2
+    ->aumentar dados dos bosses ok/2
 
--> add proteses
--> add lista de proteses instaladas
--> add comando pra instalar proteses
-
-
+-> add itens para status effects diferentes ok
+-> add status effects ok
+-> add cafeterias (andares de pausa e compra de itens/proteses/etc) ok
+-> add dinheiro ok
+-> add lojas as cafeterias ok
+-> add musica ok
+-> add "now playing:" e nome da musica, caso musica turnoff "there is no sound." ok
+-> add andar de compras ok
+-> add lojas ok
+-> add kredits ok
+-> add inventarios das lojas ok
+-> add geracao dinamica do inventario das empresas ok
+-> add compras de itens dos inventarios das empresas ok
+-> dano de hacking ok
+-> add grades nos itens (fix balanceamento) ok
+-> add efeitos nos itens (dim chance de stun, dim chance de unequip, dim tempo de hack, extra turns,
+quantos objetos sao visiveis no scan) ok
+-> remover da lista de palavras pra tab o nome do inimigo depois de spared ou rm ok
+-> add audio effects ok
+    -> add passos ok
+    -> add som terminal ok 
+    -> add som de comando/msg ok 
+-> add seta para cima para pegar comandos anteriores ok 
+-> add proteses nos inimigos ok
+-> fix salvar ( nao esta pegando itens equipados em proteses) ok
+-> fix unequip em proteses ok
+-> testar efeitos de proteses ok
+    -> extra turn ok
+    -> equip item na protese ok
+    -> ataque pela protese ok
+    -> dim tempo hack ok
+    -> dim chance de unequip 
+    -> quantos objetos sao visiveis no scan ok
+-> fix scan com logica de proteses ok
+-> comando help tanto no terminal comum quanto no do menu ok
+-> add lista de proteses instaladas ok
+-> add menu inicial ok
+-> add salvamento ok
+-> add escolha de save ok
+-> add proteses ok 
+-> add comando pra instalar proteses ok 
+-> testar efeitos de arma ok
+-> add barra de scroll (com setinha) ok
+-> add if(nenhum inimigo): liberar porta ok
+-> add porta para subir de nivel ok
+-> add logica if(encostando em porta): mudar nivel ok
+-> add cubiculos
+-> logica de armas (grades/empresas) ok
+-> fix drop de itens ok
+-> visualizar itens no mapa ok
+-> autocomplete ok
+-> add boss ok
+-> add drop de itens usaveis ok
+-> spawn de boss a cada multiplo de 5 ate 50 ok 
+-> boss de cor diferente ok 
+->testar visual spare em ascii ok
+->alterar grades de inimigos ok
 -> add niveis ok
 -> geracao dinamica de inimigos ok
 ->add miss attack ok
@@ -32,5 +79,4 @@
 ->correr (andar mais rapido) ok
 -> add itens usaveis ok
 -> nome inimigos ok
--> autocomplete ok
 -> geracao dinamica de niveis ok
