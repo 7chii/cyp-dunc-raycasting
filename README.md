@@ -1,6 +1,6 @@
 # Protocol Onboarding
 
-**Projeto:** Protocol Onboarding RPG  
+**Projeto:** Protocol Onboarding RPG (UFF 2025.2) 
 **Autores:** Mariana Pacheco, Tiago Daumas Vanni  
 **Descrição:** Um RPG de terminal cyberpunk. Via comandos de terminal, o jogador personaliza armas e próteses, e enfrenta inimigos.
 
