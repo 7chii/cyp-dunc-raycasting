@@ -7,11 +7,16 @@ equipable_items_hand_dmg = {
         }
 cuttable_items = ("knife", "chainsaw")
 
-usable_items = ("ecig", "healthjuice", "parteehard")
+usable_items = ("ecig", "healthjuice", "parteehard", "clearmind", "toughkind", "handyhelper", "supermind")
 usable_items_values = {
     "ecig":{"H":1},
     "healthjuice":{"H":10},
-    "parteehard":{"D":2}
+    "parteehard":{"D":2},
+    
+    "clearmind":{"HS":4.0},
+    "supermind":{"ET":1},
+    "toughkind":{"DEUP":0.3},
+    "handyhelper":{"UNRE":0.3}
 }
 
 #multiplicadores de valor para itens equipaveis/consumiveis/proteses

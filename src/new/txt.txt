@@ -5,17 +5,16 @@
 
 -> add antivirus to enemies ( hacking resist )
 -> add mais itens
--> add status effects ok/2
 -> add autocomplete no terminal do menu
 
 -> fix damage talvez
 -> bloquear entradas do jogador quando abrir terminal pelo lctrl
 
 -> testar geracao de bosses ok/2
-    ->aumentar dados dos bosses ok/2i
+    ->aumentar dados dos bosses ok/2
 
--> geracao dinamica de bosses (com melhoria conforme nivel) ok/2
-
+-> add itens para status effects diferentes ok
+-> add status effects ok
 -> add cafeterias (andares de pausa e compra de itens/proteses/etc) ok
 -> add dinheiro ok
 -> add lojas as cafeterias ok

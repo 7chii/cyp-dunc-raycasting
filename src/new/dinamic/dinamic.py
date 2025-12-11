@@ -11,6 +11,10 @@ def generate_random_grid(width: int, height: int, wall_chance: float = 0.2, cubi
     Gera uma grid com paredes aleatórias, garantindo que todos os espaços vazios estejam conectados.
     0 = espaço livre
     1 = parede
+    2 = cubiculo
+    3 = loja1
+    4 = loja2
+    5 = loja3
     """
     # gerar grid com paredes
 
@@ -112,7 +116,7 @@ import random
 
 def add_exit_door(grid_dict):
     """
-    Escolhe uma parede externa aleatória acessível (tem caminho livre adjacente) 
+    Escolhe uma parede externa aleatoria acessivel (tem caminho livre adjacente) 
     e troca por uma porta (3) no dict da grid.
     """
     xs = [x for x, y in grid_dict.keys()]

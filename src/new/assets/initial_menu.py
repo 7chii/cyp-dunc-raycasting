@@ -1,11 +1,13 @@
 import json
 import pygame as pg
 import os
+from respath import resource_path
 
-if os.name == "nt":
-    CONFIG_FILE = "src/new/state/data.json"
-else:
-    CONFIG_FILE = "state/data.json"
+SAVE_DIR = os.path.join(os.getenv("APPDATA"), "CypRaycastingSave")
+
+os.makedirs(SAVE_DIR, exist_ok=True)
+
+CONFIG_FILE = os.path.join(SAVE_DIR, "data.json")
 
 def delete_save_slot(slot_name: str) -> bool:
     """

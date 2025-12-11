@@ -22,14 +22,23 @@ class Player:
         self.prostheses = []
         #chance de miss
         self.chance = 0.5
-        
+        #ok
         self.hacking_damage = 0.2
-        
+        self.extra_hacking_damage = 0.0
+        #ok
         self.extra_turns = 1
+        self.extra_extra_turns = 0
+        #ok
         self.unequip_resist = 0.0
+        self.extra_unequip_resist = 0.0
+
         self.scan_objects = 0
+        #ok
         self.damage_reduction = 0.0
+        self.extra_damage_reduction = 0.0
+        #ok
         self.hack_speed_bonus = 0.0
+        self.extra_hack_speed_bonus = 0.0
         self.hp = 15
         self.damage_buff = 0   # usado se consumir algo tipo ParteeHard
         self.buff_timer = 0
@@ -127,7 +136,7 @@ class Player:
         return f"{prost_name} successfully installed as {attr_name}!"
 
     def use_item(self, item_name: str) -> str:
-        """ usa um item do inventario, aplicando efeitos com multiplicadores de marca e reduzindo num"""
+        """ usa um item do inventario"""
         if item_name not in self.inventory:
             return f"You don’t have {item_name}!"
 
@@ -156,8 +165,34 @@ class Player:
             if "D" in effect:
                 dmg_buff = int(effect["D"] * multiplier)
                 self.damage_buff += dmg_buff * (self.hp/10)
-                self.buff_timer = 120
+                self.buff_timer += 120
                 msg_parts.append(f"+{dmg_buff} Damage buff")
+
+            #new items
+            
+            if "HS" in effect:
+                extra_hack = (effect["HS"] * multiplier)
+                self.extra_hack_speed_bonus += extra_hack
+                self.extra_hacking_damage += extra_hack
+                self.buff_timer += 120
+                msg_parts.append(f"+{extra_hack}% hacking buff")
+
+            if "ET" in effect:
+                extra_extra_turns = int(effect["ET"] * multiplier)
+                self.extra_extra_turns += extra_extra_turns
+                self.buff_timer += 120
+                msg_parts.append(f"+{extra_extra_turns} extra turns")
+
+            if "DEUP" in effect:
+                defense_up = (effect["DEUP"] * multiplier)
+                self.extra_damage_reduction += defense_up
+                self.buff_timer += 120
+                msg_parts.append(f"+{defense_up}% Damage reduction buff")
+            if "UNRE" in effect:
+                unequip_up = (effect["UNRE"] * multiplier)
+                self.extra_unequip_resist += unequip_up
+                self.buff_timer += 120
+                msg_parts.append(f"+{unequip_up}% Unequip reduction buff")
             
             if grade_symbols:
                 dmg_reduction, extra_hp, force_unequip_reduction, dim_miss_chance = parse_item_grades(grade_symbols)
@@ -544,7 +579,7 @@ class Terminal:
         # divide o input em segmentos separados por "&&"
         segments = [seg.strip() for seg in text.split("&&") if seg.strip()]
 
-        max_cmds = max(1, player.extra_turns)  # limite de comandos por turno
+        max_cmds = max(1, player.extra_turns + player.extra_extra_turns)  # limite de comandos por turno
         segments = segments[:max_cmds]             # corta os excedentes
 
         results = []
@@ -767,12 +802,12 @@ class TerminalMenu:
                     "is_stunned": player.is_stunned,
                     "extra_damage": player.extra_damage,
                     "chance": player.chance,
-                    "extra_turns": player.extra_turns,
-                    "unequip_resist": player.unequip_resist,
+                    "extra_turns": player.extra_turns + player.extra_extra_turns,
+                    "unequip_resist": player.unequip_resist + player.extra_unequip_resist,
                     "scan_objects": player.scan_objects,
-                    "damage_reduction": player.damage_reduction,
-                    "hack_speed_bonus": player.hack_speed_bonus,
-                    "hacking_damage":player.hacking_damage,
+                    "damage_reduction": player.damage_reduction + player.extra_damage_reduction,
+                    "hack_speed_bonus": player.hack_speed_bonus + player.extra_hack_speed_bonus,
+                    "hacking_damage":player.hacking_damage + player.extra_hacking_damage,
                     "hp": player.hp,
                     "damage_buff": player.damage_buff,
                     "buff_timer": player.buff_timer,

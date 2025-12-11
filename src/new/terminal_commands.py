@@ -76,7 +76,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                             player.is_stunned = True
 
                         # aplica force unequip
-                        if random.random() < (force_unequip - player.unequip_resist):
+                        if random.random() < (force_unequip - (player.unequip_resist + player.extra_unequip_resist)):
                             # lista de todas as mãos + próteses de braço
                             hands_to_check = ["right_hand", "left_hand"]
                             for prost in player.prostheses:
@@ -105,7 +105,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 terminal.messages.append(f"{collided_enemy.name}'s attack tried to disarm you, but you had nothing equipped.")
 
                         # aplica dano
-                        dmg_reduc = player.damage_reduction
+                        dmg_reduc = player.damage_reduction + player.extra_damage_reduction
                         if(dmg_reduc<=0):
                             dmg_reduc = 1
                         player.hp -= (dmg * dmg_reduc)
@@ -204,11 +204,11 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 elif command["type"] == "hack":
                     if collided_enemy and collided_enemy.name == command["target"]:
                         terminal_loading(terminal, screen, label="loading hack")
-                        off_time = player.hack_speed_bonus
+                        off_time = player.hack_speed_bonus + player.extra_hack_speed_bonus
                         success = minigames.run_minigames(screen, terminal, off_time)
                         extra_turns -= 1
                         if collided_enemy.is_boss:
-                            dmg = collided_enemy.hp * player.hacking_damage
+                            dmg = collided_enemy.hp * (player.hacking_damage + player.extra_hacking_damage)
                         else:
                             dmg = collided_enemy.hp
                         if success:
@@ -220,7 +220,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                                 f"{collided_enemy.name} received {dmg} dmg from hacking! enemy HP: {collided_enemy.hp}"
                             )
                             #se menor q % do dano de hacking
-                            if random.random() < player.hacking_damage:
+                            if random.random() < (player.hacking_damage + player.extra_hacking_damage):
                                 terminal.messages.append(
                                     f"{collided_enemy.name} has weaknesses! consider attacking!"
                                 )
