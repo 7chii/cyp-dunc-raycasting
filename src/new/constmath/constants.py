@@ -2,7 +2,7 @@ from collections import namedtuple
 
 Point2 = namedtuple("Point2", "x y")
 
-SIZE = (800, 600)
+SIZE = (1920, 1080)
 FPS = (60)
 
 STEP = 1

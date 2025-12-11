@@ -204,7 +204,7 @@ def handle_terminal_commands(screen, enemies, player, terminal, events, dropped_
                 elif command["type"] == "hack":
                     if collided_enemy and collided_enemy.name == command["target"]:
                         terminal_loading(terminal, screen, label="loading hack")
-                        off_time = player.hack_speed_bonus + player.extra_hack_speed_bonus
+                        off_time = player.hack_speed_bonus
                         success = minigames.run_minigames(screen, terminal, off_time)
                         extra_turns -= 1
                         if collided_enemy.is_boss:
